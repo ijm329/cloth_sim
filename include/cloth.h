@@ -71,7 +71,8 @@ class Cloth
         void render_particles(float rotate_x, float rotate_y, float translate_z);
         void render_springs(float rotate_x, float rotate_y, float translate_z);
         void make_diagonal_link(int i, int j, int &spring_cnt, int dir, float len);
-        void make_structural_link(int i, int j, int target, int &spring_cnt, float len);
+        void make_structural_link(int i, int j, int target, int &spring_cnt, float len, 
+                                  spring_type_t type);
 
     public:
         Cloth(int n = 2);

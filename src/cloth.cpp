@@ -71,14 +71,15 @@ void Cloth::make_diagonal_link(int i, int j, int &spring_cnt, int dir, float len
     ASSERT(spring_cnt < num_springs);
 }
 
-void Cloth::make_structural_link(int i, int j, int target, int &spring_cnt, float len)
+void Cloth::make_structural_link(int i, int j, int target, int &spring_cnt, float len, 
+                                 spring_type_t type)
 {
     springs[spring_cnt].left = (i * num_particles_width) + j;
     springs[spring_cnt].right = target;
     springs[spring_cnt].rest_length = len;
     springs[spring_cnt].k = 1.0;
     springs[spring_cnt].damping = 1.0;
-    springs[spring_cnt].spring_type = STRUCTURAL;
+    springs[spring_cnt].spring_type = type;
     spring_cnt++;
     ASSERT(spring_cnt <= num_springs);
 }
@@ -142,11 +143,13 @@ void Cloth::init()
             int lower = ((i + 1) * num_particles_width) + j;
             if(j + 1 < num_particles_width)
             {
-                make_structural_link(i, j, right, spring_cnt, horizontal_length);
+                make_structural_link(i, j, right, spring_cnt, horizontal_length,
+                                     STRUCTURAL);
             }
             if(i + 1 < num_particles_height)
             {
-                make_structural_link(i, j, lower, spring_cnt, horizontal_length);
+                make_structural_link(i, j, lower, spring_cnt, horizontal_length,
+                                     STRUCTURAL);
             }
         }
     }
@@ -161,11 +164,13 @@ void Cloth::init()
             //link of length 2
             if(j + 2 < num_particles_width)
             {
-                make_structural_link(i, j, right, spring_cnt, 2.0 * horizontal_length);
+                make_structural_link(i, j, right, spring_cnt, 2.0 * horizontal_length, 
+                                     FLEXION);
             }
             if(i + 2 < num_particles_height)
             {
-                make_structural_link(i, j, lower, spring_cnt, 2.0 * vertical_length);
+                make_structural_link(i, j, lower, spring_cnt, 2.0 * vertical_length, 
+                                     FLEXION);
             }
         }
     }
