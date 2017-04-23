@@ -27,14 +27,13 @@ typedef struct vector3D
 
 typedef enum
 {
-    STRETCH,
+    STRUCTURAL,
     SHEAR,
-    BEND
+    FLEXION
 } spring_type_t;
 
 typedef struct particle
 {
-    vector3D screen_pos;
     vector3D pos;
     vector3D prev_pos;
     vector3D color;
@@ -59,7 +58,6 @@ class Cloth
         int num_springs;
         particle *particles;
         spring *springs;
-        //GLuint vbo;
 
         void apply_spring_forces();
         void apply_wind_forces();
@@ -68,7 +66,6 @@ class Cloth
         void satisfy_constraints();
         void render_particles(float rotate_x, float rotate_y, float translate_z);
         void render_springs(float rotate_x, float rotate_y, float translate_z);
-        void transform_particle_buffer();
 
     public:
         Cloth(int n = 2);
