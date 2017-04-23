@@ -15,14 +15,15 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
+#define NUM_CLOTH_POINTS 8
 
-Cloth cloth(32);
+Cloth cloth(NUM_CLOTH_POINTS);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
 int mouse_buttons = 0;
 float rotate_x = 0.0, rotate_y = 0.0;
-float translate_z = -3.0;
+float translate_z = -6.0;
 
 void render_scene()
 {
@@ -42,10 +43,11 @@ void render_scene()
 
     //glColor3f(0.0f, 1.0f, 0.0f);
     //glBegin(GL_POINTS);
+    //glVertex3f(-1.0f, 0.0f, -1.0f);
+    //glVertex3f(0.0f, 0.0f, -1.0f);
     //glVertex3f(0.0f, 0.0f, 0.0f);
-    //glVertex3f(1.0f, 0.0f, 0.0f);
-    //glVertex3f(0.0f, 0.0f, 1.0f);
-    //glVertex3f(1.0f, 0.0f, 1.0f);
+    //glVertex3f(-1.0f, 0.0f, 0.0f);
+
     //glEnd();
 
     glutSwapBuffers();
@@ -116,6 +118,8 @@ void process_keys(unsigned char key, int x, int y)
     //x and y are mouse position relative to top left corner when key is pressed
     if((key == 'q') || (key == 'Q') || (key == 27))
         exit(0);
+    else if(key == 32)
+        cloth.simulate_timestep();
 }
 
 void printVersionInfo()
@@ -147,7 +151,7 @@ void glInit(int argc, char **argv)
     glShadeModel(GL_SMOOTH);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPointSize(6.0);
+    glPointSize(3.0);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);
@@ -177,7 +181,7 @@ int main(int argc, char **argv)
     glInit(argc, argv);
     cloth.init();
 
-    vector3Dtest();
+    //vector3Dtest();
 
     //register GLUT callbacks
     glutDisplayFunc(render_scene);

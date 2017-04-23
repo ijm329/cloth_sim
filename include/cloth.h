@@ -19,6 +19,14 @@
 #define PARTICLE_MASS 0.001 //in kg
 #define LEFT 0 
 #define RIGHT 1
+#define NUM_CONSTRAINT_ITERS 1
+#define DIFF_CRITICAL 0.2
+#define STIFFNESS 0.1 //in N/m
+#define DAMPING_COEFF 0.001 //in kg/s
+
+#define MIN_BOUND (-2.0f)
+#define MAX_BOUND (2.0f)
+#define BOUND_LENGTH ((MAX_BOUND) - (MIN_BOUND))
 
 #define DEBUG
 #ifdef DEBUG
@@ -40,6 +48,7 @@ typedef struct particle
     vector3D prev_pos;
     vector3D color;
     vector3D force;
+    bool fixed;
 } particle;
 
 typedef struct spring
@@ -48,7 +57,6 @@ typedef struct spring
     int right;
     float rest_length;
     float k;
-    float damping; //TODO: FIXME
     spring_type_t spring_type;
 } spring;
 
@@ -66,11 +74,15 @@ class Cloth
         void update_positions();
         void apply_forces();
         void satisfy_constraints();
-        void render_particles(float rotate_x, float rotate_y, float translate_z);
+        void render_particles(float rotate_x, float rotate_y, 
+                              float translate_z);
         void render_springs(float rotate_x, float rotate_y, float translate_z);
-        void make_diagonal_link(int i, int j, int &spring_cnt, int dir, float len);
-        void make_structural_link(int i, int j, int target, int &spring_cnt, float len, 
-                                  spring_type_t type);
+        void make_diagonal_link(int i, int j, int &spring_cnt, int dir, 
+                                float len);
+        void make_structural_link(int i, int j, int target, int &spring_cnt, 
+                                  float len, spring_type_t type);
+        void reset_border_particles();
+        void apply_damping_forces();
 
     public:
         Cloth(int n = 2);
