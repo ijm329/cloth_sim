@@ -17,7 +17,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 
-Cloth cloth(64);
+Cloth cloth(256);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -30,8 +30,9 @@ void render_scene()
     double start_time, end_time;
     
     //start_time = CycleTimer::currentSeconds();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //glMatrixMode(GL_MODELVIEW);
     //glLoadIdentity();
@@ -57,7 +58,6 @@ void render_scene()
 
 void resize_window(int width, int height)
 {
-    printf("Resizing window \n");
     height = (height == 0) ? 1 : height;
     float aspect_ratio = (GLfloat) width / (GLfloat) height;
     glViewport(0, 0, width, height);
@@ -69,15 +69,14 @@ void resize_window(int width, int height)
 
 void mouse_handler(int button, int state, int x, int y)
 {
-    printf("button = %d \n", button);
     if((button == 3) || (button == 4))
     {
         if(state == GLUT_UP)
             return;
         if(button == 3)
-            translate_z += 0.02f;
+            translate_z += 0.1f;
         else
-            translate_z -= 0.02f;
+            translate_z -= 0.1f;
     }
     else
     {
@@ -143,7 +142,7 @@ void glInit(int argc, char **argv)
     glClearDepth(1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPointSize(1.0);
+    //glPointSize(1.0);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
