@@ -254,7 +254,7 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
 void Cloth::apply_forces()
 {
     //accumulate force of gravity on all particles
-    vector3D gravity(0.0f, -9.8f, 0.0f);
+    vector3D gravity(0.0f, -9.81f, 0.0f);
 
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)

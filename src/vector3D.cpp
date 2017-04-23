@@ -1,4 +1,3 @@
-#include <iostream>
 #include "vector3D.h"
 
 std::ostream& operator<<(std::ostream& os, const vector3D &v)

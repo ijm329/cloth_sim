@@ -1,6 +1,9 @@
 #ifndef VECTOR3D_H 
 #define VECTOR3D_H 
 
+#include <iostream>
+#include <math.h>
+
 typedef struct vector3D
 {
     float x;
@@ -73,6 +76,17 @@ typedef struct vector3D
     bool operator!=(const vector3D& a) const
     {
         return ((x != a.x) || (y != a.y) || (z != a.z));
+    }
+
+    float norm() const
+    {
+        return sqrt(x*x + y*y + z*z);
+    }
+
+    vector3D unit() const
+    {
+        float norm_inv = 1.0f / sqrt(x*x + y*y + z*z);
+        return vector3D(norm_inv * x, norm_inv * y, norm_inv * z);
     }
 
 } vector3D;
