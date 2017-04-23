@@ -48,6 +48,7 @@ typedef struct particle
     vector3D prev_pos;
     vector3D color;
     vector3D force;
+    vector3D vel;
     bool fixed;
 } particle;
 

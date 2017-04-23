@@ -134,6 +134,7 @@ void Cloth::init()
             particles[i*num_particles_width + j].color = {r, g, b};
             particles[i*num_particles_width + j].fixed = fixed;
             particles[i*num_particles_width + j].force = {0.0f, 0.0f, 0.0f};
+            particles[i*num_particles_width + j].vel = {0.0f, 0.0f, 0.0f};
 
             //std::cout<<i*num_particles_width+j<<" : " <<
             //particles[i*num_particles_width+j].pos<<std::endl;
@@ -275,6 +276,7 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     //rendering structural and shear springs only
     int num_flexion = num_particles_height * (num_particles_width - 2) + 
                        num_particles_width * (num_particles_height - 2);
+ 
     int num_shear_struct = num_springs - num_flexion;
 
     //set to thinnest lines
@@ -330,9 +332,7 @@ void Cloth::apply_damping_forces()
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
     {
-        vector3D vel = (particles[i].pos - particles[i].prev_pos)/
-                       (2*TIME_STEP);
-        particles[i].force += (-DAMPING_COEFF*vel);
+        particles[i].force += (-DAMPING_COEFF*particles[i].vel);
     }
 }
 
@@ -416,6 +416,8 @@ void Cloth::update_positions()
         vector3D acc = particles[i].force/PARTICLE_MASS;
         particles[i].pos += (particles[i].pos - particles[i].prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
+        particles[i].vel = (particles[i].pos - particles[i].prev_pos) / 
+                           (2 * TIME_STEP);
         particles[i].prev_pos = temp;
     }
 }
