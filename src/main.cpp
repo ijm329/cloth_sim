@@ -4,38 +4,43 @@
 #include <GL/glew.h>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
+#include <OpenGL/gl.h>
 #else
 #include <GL/glut.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
 #endif
 
-#define DEFAULT_W 960
-#define DEFAULT_H 640
+#include "cycleTimer.h"
+#include "cloth.h"
 
-void renderScene()
+#define DEFAULT_W 640
+#define DEFAULT_H 480
+
+Cloth cloth;
+
+//mouse controls
+int mouse_old_x, mouse_old_y;
+int mouse_buttons = 0;
+float rotate_x = 0.0, rotate_y = 0.0;
+float translate_z = -3.0;
+
+void render_scene()
 {
-    static float angle = 0.0f;
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glLoadIdentity();
-    gluLookAt(0.0f, 0.0f, 10.0f,
-              0.0f, 0.0f, 0.0f,
-              0.0f, 1.0f, 0.0f);
-    glRotatef(angle, 0.0f, 1.0f, 0.0f);
-
-    glColor3f(0.2f, 0.2f, 0.4f);
-
-    glBegin(GL_TRIANGLES);
-    glVertex3f(-2.0, -2.0, -5.0);
-    glVertex3f(2.0, 0.0, -5.0);
-    glVertex3f(0.0, 2.0, -5.0);
-    glEnd();
-
-    angle += 0.1f;
+    double start_time, end_time;
+    
+    //start_time = CycleTimer::currentSeconds();
+    cloth.render(rotate_x, rotate_y, translate_z);
 
     glutSwapBuffers();
+
+    glutPostRedisplay();
+    //end_time = CycleTimer::currentSeconds();
+
+    //std::cout << "Render Time: " << end_time - start_time << std::endl;
 }
 
-void resizeWindow(int width, int height)
+void resize_window(int width, int height)
 {
     height = (height == 0) ? 1 : height;
     float ratio = 1.0 * width / height;
@@ -44,9 +49,36 @@ void resizeWindow(int width, int height)
     glLoadIdentity();
     glViewport(0, 0, width, height);
 
-    gluPerspective(45, ratio, 1, 1000);
+    gluPerspective(60, ratio, 0.1, 10.0);
 
     glMatrixMode(GL_MODELVIEW);
+}
+
+void mouse_handler(int button, int state, int x, int y)
+{
+    if(state == GLUT_DOWN)
+        mouse_buttons |= 1<<button;
+    else if(state == GLUT_UP)
+        mouse_buttons = 0;
+
+    mouse_old_x = x;
+    mouse_old_y = y;
+}
+
+void move_camera(int x, int y)
+{
+    float dx, dy;
+    dx = (float)(x - mouse_old_x);
+    dy = (float)(y - mouse_old_y);
+
+    if(mouse_buttons & 1)
+    {
+        rotate_x += dy * 0.2f;
+        rotate_y += dx * 0.2f;
+    }
+
+    mouse_old_x = x;
+    mouse_old_y = y;
 }
 
 void processKeys(unsigned char key, int x, int y)
@@ -59,20 +91,11 @@ void processKeys(unsigned char key, int x, int y)
 void printVersionInfo()
 {
     std::cout << " Glew version: " << glewGetString(GLEW_VERSION) <<
-               " GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) <<
                " OpenGL version: " <<glGetString(GL_VERSION) << std::endl;
 }
 
-void glInit()
+void glInit(int argc, char **argv)
 {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-}
-
-int main(int argc, char **argv)
-{
-    //initialize GLUT and create window
     glutInit(&argc, argv);
     glutInitWindowSize(DEFAULT_W, DEFAULT_H);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
@@ -86,12 +109,33 @@ int main(int argc, char **argv)
     }
     printVersionInfo();
 
-    glInit();
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_POINT_SMOOTH);
+    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    glShadeModel(GL_SMOOTH);
+    glClearDepth(1.0f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPointSize(6.0);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+    glViewport(0, 0, DEFAULT_W, DEFAULT_H);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(60.0, (GLfloat)DEFAULT_W / (GLfloat)DEFAULT_H, 0.1, 10.0);
+}
+
+int main(int argc, char **argv)
+{
+    //initialize GLUT and create window
+    glInit(argc, argv);
+    cloth.init();
 
     //register GLUT callbacks
-    glutDisplayFunc(renderScene);
-    glutReshapeFunc(resizeWindow);
-    glutIdleFunc(renderScene);
+    glutDisplayFunc(render_scene);
+    //glutReshapeFunc(resize_window);
     glutKeyboardFunc(processKeys);
 
     //enter GLUT event processing cycle
