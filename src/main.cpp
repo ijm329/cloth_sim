@@ -14,8 +14,9 @@
 
 #define DEFAULT_W 640
 #define DEFAULT_H 480
+#define REFRESH_INTERVAL 10 //in ms
 
-Cloth cloth(32);
+Cloth cloth(512);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -27,7 +28,7 @@ void render_scene()
 {
     double start_time, end_time;
     
-    //start_time = CycleTimer::currentSeconds();
+    start_time = CycleTimer::currentSeconds();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
@@ -47,11 +48,17 @@ void render_scene()
     //glEnd();
 
     glutSwapBuffers();
+    end_time = CycleTimer::currentSeconds();
+    std::cout << "FPS: " << 1/(end_time - start_time) << std::endl;
+}
 
-    glutPostRedisplay();
-    //end_time = CycleTimer::currentSeconds();
-
-    //std::cout << "Render Time: " << end_time - start_time << std::endl;
+void timer_handler(int value)
+{
+    if(glutGetWindow())
+    {
+        glutPostRedisplay();
+        glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
+    }
 }
 
 void resize_window(int width, int height)
@@ -67,22 +74,17 @@ void resize_window(int width, int height)
 
 void mouse_handler(int button, int state, int x, int y)
 {
-    if((button == 3) || (button == 4))
+    if(state == GLUT_DOWN)
     {
-        if(state == GLUT_UP)
-            return;
+        mouse_buttons |= 1<<button;
         if(button == 3)
             translate_z += 0.1f;
-        else
+        else if(button == 4)
             translate_z -= 0.1f;
     }
-    else
-    {
-        if(state == GLUT_DOWN)
-            mouse_buttons |= 1<<button;
-        else if(state == GLUT_UP)
-            mouse_buttons = 0;
-    }
+
+    else if(state == GLUT_UP)
+        mouse_buttons = 0;
 
     mouse_old_x = x;
     mouse_old_y = y;
@@ -99,6 +101,8 @@ void move_camera(int x, int y)
         rotate_x += dy * 0.2f;
         rotate_y += dx * 0.2f;
     }
+    else if(mouse_buttons & 4)
+        translate_z += dy * 0.01f;
 
     mouse_old_x = x;
     mouse_old_y = y;
@@ -173,6 +177,7 @@ int main(int argc, char **argv)
     //register GLUT callbacks
     glutDisplayFunc(render_scene);
     glutReshapeFunc(resize_window);
+    glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
     glutKeyboardFunc(process_keys);
     glutMouseFunc(mouse_handler);
     glutMotionFunc(move_camera);
