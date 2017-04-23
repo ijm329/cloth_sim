@@ -5,7 +5,8 @@ Cloth::Cloth(int n)
     num_particles_width = n;
     num_particles_height = n;
     int num_particles = n * n;
-    num_springs = 0; //TODO: FIXME
+    num_springs = (num_particles_height * (num_particles_width - 1)) + 
+                  (num_particles_width * (num_particles_height - 1)); 
     particles = (particle*)malloc(sizeof(particle) * num_particles);
     springs = (spring*)malloc(sizeof(spring) * num_springs);
 
@@ -21,7 +22,8 @@ Cloth::Cloth(int w, int h)
     num_particles_width = w;
     num_particles_height = h;
     int num_particles = w * h;
-    num_springs = 0; //TODO: FIXME
+    num_springs = (num_particles_height * (num_particles_width - 1)) + 
+                  (num_particles_width * (num_particles_height - 1)); 
     particles = (particle*)malloc(sizeof(particle) * num_particles);
     springs = (spring*)malloc(sizeof(spring) * num_springs);
 
