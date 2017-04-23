@@ -388,8 +388,8 @@ void Cloth::satisfy_constraints()
                                      new_length);
 
             //std::cout<<diff_ratio<<std::endl;
-            if(diff_ratio > DIFF_CRITICAL)
-            {
+            //if(diff_ratio > DIFF_CRITICAL)
+            //{
                 if(!p1.fixed && !p2.fixed)
                 {
                     p1.pos -= diff*0.5*diff_ratio;
@@ -399,7 +399,7 @@ void Cloth::satisfy_constraints()
                     p1.pos -= diff*diff_ratio;
                 else if(!p2.fixed)
                     p2.pos += diff*diff_ratio;
-            }
+            //}
         }
         reset_border_particles();
     }

@@ -19,10 +19,10 @@
 #define PARTICLE_MASS 0.001 //in kg
 #define LEFT 0 
 #define RIGHT 1
-#define NUM_CONSTRAINT_ITERS 1
+#define NUM_CONSTRAINT_ITERS 15
 #define DIFF_CRITICAL 0.2
 #define STIFFNESS 0.1 //in N/m
-#define DAMPING_COEFF 0.001 //in kg/s
+#define DAMPING_COEFF 0.005 //in kg/s
 
 #define MIN_BOUND (-2.0f)
 #define MAX_BOUND (2.0f)
