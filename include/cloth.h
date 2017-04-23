@@ -27,9 +27,9 @@ typedef struct vector3D
 
 typedef enum
 {
-    STRETCH,
+    STRUCTURAL,
     SHEAR,
-    BEND
+    FLEXION
 } spring_type_t;
 
 typedef struct particle

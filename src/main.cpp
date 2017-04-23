@@ -69,10 +69,23 @@ void resize_window(int width, int height)
 
 void mouse_handler(int button, int state, int x, int y)
 {
-    if(state == GLUT_DOWN)
-        mouse_buttons |= 1<<button;
-    else if(state == GLUT_UP)
-        mouse_buttons = 0;
+    printf("button = %d \n", button);
+    if((button == 3) || (button == 4))
+    {
+        if(state == GLUT_UP)
+            return;
+        if(button == 3)
+            translate_z += 0.02f;
+        else
+            translate_z -= 0.02f;
+    }
+    else
+    {
+        if(state == GLUT_DOWN)
+            mouse_buttons |= 1<<button;
+        else if(state == GLUT_UP)
+            mouse_buttons = 0;
+    }
 
     mouse_old_x = x;
     mouse_old_y = y;
@@ -89,8 +102,6 @@ void move_camera(int x, int y)
         rotate_x += dy * 0.2f;
         rotate_y += dx * 0.2f;
     }
-    else if(mouse_buttons & 4)
-        translate_z += dy * 0.01f;
 
     mouse_old_x = x;
     mouse_old_y = y;
@@ -132,7 +143,7 @@ void glInit(int argc, char **argv)
     glClearDepth(1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPointSize(6.0);
+    glPointSize(1.0);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
