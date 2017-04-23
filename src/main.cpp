@@ -4,12 +4,10 @@
 #include <GL/glew.h>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
-#include <OpenGL/gl.h>
 #else
 #include <GL/glut.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
 #endif
+#include <assert.h>
 
 #include "cycleTimer.h"
 #include "cloth.h"
@@ -17,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 
-Cloth cloth(256);
+Cloth cloth(32);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -135,18 +133,33 @@ void glInit(int argc, char **argv)
     printVersionInfo();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    glDisable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glShadeModel(GL_SMOOTH);
-    glClearDepth(1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //glPointSize(1.0);
+    glPointSize(1.0);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);
+}
+
+void vector3Dtest()
+{
+    vector3D u(1,2,3);
+    vector3D v(u);
+    assert(u == v);
+    std::cout<<(u+v)<<std::endl;
+    std::cout<<(u-v)<<std::endl;
+    std::cout<<(u*5)<<5*u<<std::endl;
+    assert(u*5 == 5*u);
+    u*=5;
+    u+=v;
+    std::cout<<(u)<<std::endl;
+    u-=v;
+    std::cout<<(u)<<std::endl;
+    std::cout<<(u/5)<<std::endl;
+    assert(u/5 == v);
 }
 
 int main(int argc, char **argv)
@@ -154,6 +167,8 @@ int main(int argc, char **argv)
     //initialize GLUT and create window
     glInit(argc, argv);
     cloth.init();
+
+    vector3Dtest();
 
     //register GLUT callbacks
     glutDisplayFunc(render_scene);

@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.8)
 
-set(SOURCES main.cpp cloth.cpp)
+file(GLOB SOURCES *.cpp)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
