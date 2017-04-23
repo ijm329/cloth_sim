@@ -17,7 +17,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 
-Cloth cloth;
+Cloth cloth(64);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -30,22 +30,22 @@ void render_scene()
     double start_time, end_time;
     
     //start_time = CycleTimer::currentSeconds();
-    //cloth.render(rotate_x, rotate_y, translate_z);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    cloth.render(rotate_x, rotate_y, translate_z);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, translate_z);
-    glRotatef(rotate_x, 1.0f, 0.0f, 0.0f);
-    glRotatef(rotate_y, 0.0f, 1.0f, 0.0f);
+    //glMatrixMode(GL_MODELVIEW);
+    //glLoadIdentity();
+    //glTranslatef(0.0f, 0.0f, translate_z);
+    //glRotatef(rotate_x, 1.0f, 0.0f, 0.0f);
+    //glRotatef(rotate_y, 0.0f, 1.0f, 0.0f);
 
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glBegin(GL_POINTS);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(0.0f, 0.0f, 1.0f);
-    glVertex3f(1.0f, 0.0f, 1.0f);
-    glEnd();
+    //glColor3f(0.0f, 1.0f, 0.0f);
+    //glBegin(GL_POINTS);
+    //glVertex3f(0.0f, 0.0f, 0.0f);
+    //glVertex3f(1.0f, 0.0f, 0.0f);
+    //glVertex3f(0.0f, 0.0f, 1.0f);
+    //glVertex3f(1.0f, 0.0f, 1.0f);
+    //glEnd();
 
     glutSwapBuffers();
 

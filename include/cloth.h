@@ -59,7 +59,7 @@ class Cloth
         int num_springs;
         particle *particles;
         spring *springs;
-        GLuint vbo;
+        //GLuint vbo;
 
         void apply_spring_forces();
         void apply_wind_forces();
