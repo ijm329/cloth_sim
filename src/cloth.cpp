@@ -99,8 +99,8 @@ void Cloth::init()
             z = 2*z - 1.0f;
 
             particles[i*num_particles_width + j].pos = {x, 0.0f, z};
-            particles[i*num_particles_width + j].color = {0.0f, 1.0f, 0.0f};
-            particles[i*num_particles_width + j].mass = 0.001; //in kg
+            particles[i*num_particles_width + j].color = {0.5f, 0.5f, 0.5f};
+            particles[i*num_particles_width + j].prev_pos = {x, 0.0f, z};
         }
     }
     float horizontal_length = 2.0f / ((float)num_particles_width);
@@ -180,6 +180,8 @@ void Cloth::init()
 
 void Cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
+    //transform the cloth's position in the world space based on 
+    //camera parameters
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glTranslatef(0.0, 0.0, translate_z);
@@ -200,15 +202,6 @@ void Cloth::render_particles(float rotate_x, float rotate_y, float translate_z)
     glDrawArrays(GL_POINTS, 0, num_particles);
     glDisableClientState(GL_VERTEX_ARRAY);
 
-
-    //glBegin(GL_POINTS);
-    //for(int i = 0; i < num_particles; i++)
-    //{
-    //    glColor3fv(&(particles[i].color.x));
-    //    glVertex3fv(&(particles[i].screen_pos.x));
-    //}
-    //glEnd();
-
     //glBindBuffer(GL_ARRAY_BUFFER, vbo);
     //glBufferSubData(GL_ARRAY_BUFFER, 0, num_particles * sizeof(particle), particles);
     //glVertexPointer(3, GL_FLOAT, sizeof(particle), &particles[0]);
@@ -219,12 +212,12 @@ void Cloth::render_particles(float rotate_x, float rotate_y, float translate_z)
     //glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-inline unsigned Cloth::get_num_particles()
+inline int Cloth::get_num_particles()
 {
     return num_particles_width * num_particles_height;
 }
 
-inline unsigned Cloth::get_num_springs()
+inline int Cloth::get_num_springs()
 {
     return num_springs;
 }
@@ -252,6 +245,15 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
 
 void Cloth::apply_forces()
 {
+    //accumulate force of gravity on all particles
+    vector3D gravity(0.0f, -9.8f, 0.0f);
+
+    int num_particles = get_num_particles();
+    for(int i = 0; i < num_particles; i++)
+    {
+        particles[i].force = PARTICLE_MASS * gravity;
+    }
+
     apply_wind_forces();
     apply_spring_forces();
     //TODO: FIXME
@@ -276,7 +278,15 @@ void Cloth::satisfy_constraints()
 void Cloth::update_positions()
 {
     //perform verlet integration
-    //TODO: FIXME
+    int num_particles = get_num_particles();
+    for(int i = 0; i < num_particles; i++)
+    {
+        vector3D temp(particles[i].pos);
+        vector3D acc = particles[i].force/PARTICLE_MASS;
+        particles[i].pos += (particles[i].pos - particles[i].prev_pos +
+                             acc * TIME_STEP * TIME_STEP); 
+        particles[i].prev_pos = temp;
+    }
 }
 
 void Cloth::simulate_timestep()

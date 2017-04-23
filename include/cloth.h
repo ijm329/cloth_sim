@@ -1,7 +1,6 @@
 #ifndef CLOTH_H 
 #define CLOTH_H 
 
-#include <vector>
 #include <string>
 #include <stdexcept>
 #include <math.h>
@@ -11,14 +10,15 @@
 #include <GL/glew.h>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
-#include <OpenGL/gl.h>
 #else
 #include <GL/glut.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
 #endif
 
-#define TIME_STEP 0.002
+#include "vector3D.h"
+
+#define TIME_STEP 0.002 //in seconds
+#define PARTICLE_MASS 0.001 //in kg
+
 #define LEFT 0 
 #define RIGHT 1
 
@@ -28,13 +28,6 @@
 #else
 #define ASSERT(cond)
 #endif
-
-typedef struct vector3D
-{
-    float x;
-    float y;
-    float z;
-} vector3D;
 
 typedef enum
 {
@@ -48,7 +41,7 @@ typedef struct particle
     vector3D pos;
     vector3D prev_pos;
     vector3D color;
-    float mass;
+    vector3D force;
 } particle;
 
 typedef struct spring
@@ -88,8 +81,8 @@ class Cloth
         void init();
         void simulate_timestep();
         void render(float rotate_x, float rotate_y, float translate_z);
-        inline unsigned get_num_particles();
-        inline unsigned get_num_springs();
+        inline int get_num_particles();
+        inline int get_num_springs();
 };
 
 

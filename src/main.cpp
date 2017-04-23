@@ -4,20 +4,19 @@
 #include <GL/glew.h>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
-#include <OpenGL/gl.h>
 #else
 #include <GL/glut.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
 #endif
+#include <assert.h>
 
 #include "cycleTimer.h"
 #include "cloth.h"
 
 #define DEFAULT_W 640
 #define DEFAULT_H 480
+#define REFRESH_INTERVAL 10 //in ms
 
-Cloth cloth(8);
+Cloth cloth(32);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -29,8 +28,9 @@ void render_scene()
 {
     double start_time, end_time;
     
-    //start_time = CycleTimer::currentSeconds();
+    start_time = CycleTimer::currentSeconds();
 
+    cloth.simulate_timestep();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
 
@@ -49,11 +49,19 @@ void render_scene()
     //glEnd();
 
     glutSwapBuffers();
+    end_time = CycleTimer::currentSeconds();
+    char window_title[256];
+    sprintf(window_title, "cloth_sim FPS: %f", 1/(end_time - start_time));
+    glutSetWindowTitle(window_title);
+}
 
-    glutPostRedisplay();
-    //end_time = CycleTimer::currentSeconds();
-
-    //std::cout << "Render Time: " << end_time - start_time << std::endl;
+void timer_handler(int value)
+{
+    if(glutGetWindow())
+    {
+        glutPostRedisplay();
+        glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
+    }
 }
 
 void resize_window(int width, int height)
@@ -69,22 +77,17 @@ void resize_window(int width, int height)
 
 void mouse_handler(int button, int state, int x, int y)
 {
-    if((button == 3) || (button == 4))
+    if(state == GLUT_DOWN)
     {
-        if(state == GLUT_UP)
-            return;
+        mouse_buttons |= 1<<button;
         if(button == 3)
             translate_z += 0.1f;
-        else
+        else if(button == 4)
             translate_z -= 0.1f;
     }
-    else
-    {
-        if(state == GLUT_DOWN)
-            mouse_buttons |= 1<<button;
-        else if(state == GLUT_UP)
-            mouse_buttons = 0;
-    }
+
+    else if(state == GLUT_UP)
+        mouse_buttons = 0;
 
     mouse_old_x = x;
     mouse_old_y = y;
@@ -101,6 +104,8 @@ void move_camera(int x, int y)
         rotate_x += dy * 0.2f;
         rotate_y += dx * 0.2f;
     }
+    else if(mouse_buttons & 4)
+        translate_z += dy * 0.01f;
 
     mouse_old_x = x;
     mouse_old_y = y;
@@ -135,18 +140,33 @@ void glInit(int argc, char **argv)
     printVersionInfo();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    glDisable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glShadeModel(GL_SMOOTH);
-    glClearDepth(1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //glPointSize(1.0);
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPointSize(1.0);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);
+}
+
+void vector3Dtest()
+{
+    vector3D u(1,2,3);
+    vector3D v(u);
+    assert(u == v);
+    std::cout<<(u+v)<<std::endl;
+    std::cout<<(u-v)<<std::endl;
+    std::cout<<(u*5)<<5*u<<std::endl;
+    assert(u*5 == 5*u);
+    u*=5;
+    u+=v;
+    std::cout<<(u)<<std::endl;
+    u-=v;
+    std::cout<<(u)<<std::endl;
+    std::cout<<(u/5)<<std::endl;
+    assert(u/5 == v);
 }
 
 int main(int argc, char **argv)
@@ -155,9 +175,12 @@ int main(int argc, char **argv)
     glInit(argc, argv);
     cloth.init();
 
+    vector3Dtest();
+
     //register GLUT callbacks
     glutDisplayFunc(render_scene);
     glutReshapeFunc(resize_window);
+    glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
     glutKeyboardFunc(process_keys);
     glutMouseFunc(mouse_handler);
     glutMotionFunc(move_camera);
