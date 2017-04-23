@@ -16,7 +16,7 @@
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
 
-Cloth cloth(512);
+Cloth cloth(32);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -30,6 +30,7 @@ void render_scene()
     
     start_time = CycleTimer::currentSeconds();
 
+    cloth.simulate_timestep();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
 
@@ -49,7 +50,9 @@ void render_scene()
 
     glutSwapBuffers();
     end_time = CycleTimer::currentSeconds();
-    std::cout << "FPS: " << 1/(end_time - start_time) << std::endl;
+    char window_title[256];
+    sprintf(window_title, "cloth_sim FPS: %f", 1/(end_time - start_time));
+    glutSetWindowTitle(window_title);
 }
 
 void timer_handler(int value)

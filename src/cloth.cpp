@@ -55,6 +55,7 @@ void Cloth::init()
 
             particles[i*num_particles_width + j].pos = {x, 0.0f, z};
             particles[i*num_particles_width + j].color = {0.5f, 0.5f, 0.5f};
+            particles[i*num_particles_width + j].prev_pos = {x, 0.0f, z};
         }
     }
 
