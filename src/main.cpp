@@ -17,7 +17,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 
-Cloth cloth(256);
+Cloth cloth(8);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
