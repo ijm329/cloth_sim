@@ -104,6 +104,8 @@ void Cloth::init()
             particles[i*num_particles_width + j].prev_pos = {x, 0.0f, z};
         }
     }
+
+
     float horizontal_length = 2.0f / ((float)num_particles_width);
     float vertical_length = 2.0f / ((float)num_particles_height);
     float diagonal_length = sqrtf(powf(horizontal_length, 2.0f) + 
@@ -233,17 +235,18 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     int num_flexion = num_particles_height * (num_particles_width - 2) + 
                        num_particles_width * (num_particles_height - 2);
     int num_shear_struct = num_springs - num_flexion;
-    int i;
-    vector3D start, end;
-    glLineWidth(0.1);
+
+    //set to thinnest lines
+    float line_width[2];
+    glGetFloatv(GL_LINE_WIDTH_RANGE, line_width);
+    glLineWidth(line_width[0]);
+
     glColor3f(1.0, 0.0, 0.0);
     glBegin(GL_LINES);
-    for(i = 0; i < num_shear_struct; i++)
+    for(int i = 0; i < num_shear_struct; i++)
     {
-        start = particles[springs[i].left].pos;
-        end = particles[springs[i].right].pos;
-        glVertex3f(start.x, start.y, start.z);
-        glVertex3f(end.x, end.y, end.z);
+        glVertex3fv(&(particles[springs[i].left].pos.x));
+        glVertex3fv(&(particles[springs[i].right].pos.x));
     }
     glEnd();
 }

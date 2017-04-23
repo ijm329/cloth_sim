@@ -13,12 +13,10 @@
 #else
 #include <GL/glut.h>
 #endif
-
 #include "vector3D.h"
 
 #define TIME_STEP 0.002 //in seconds
 #define PARTICLE_MASS 0.001 //in kg
-
 #define LEFT 0 
 #define RIGHT 1
 
