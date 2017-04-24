@@ -23,7 +23,7 @@ Cloth cloth(NUM_CLOTH_POINTS);
 int mouse_old_x, mouse_old_y;
 int mouse_buttons = 0;
 float rotate_x = 0.0, rotate_y = 0.0;
-float translate_z = -6.0;
+float translate_z = MIN_BOUND*3;
 
 void render_scene()
 {
@@ -31,7 +31,7 @@ void render_scene()
     
     start_time = CycleTimer::currentSeconds();
 
-    cloth.simulate_timestep();
+    //cloth.simulate_timestep();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
 
@@ -74,7 +74,7 @@ void resize_window(int width, int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(60.0f, aspect_ratio, 0.1f, 10.0f);
+    gluPerspective(60.0f, aspect_ratio, 0.1f, 100.0f);
 }
 
 void mouse_handler(int button, int state, int x, int y)

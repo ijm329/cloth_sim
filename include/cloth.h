@@ -18,16 +18,23 @@
 //Simulation Constants
 #define TIME_STEP 0.002 //in seconds
 #define NUM_CONSTRAINT_ITERS 1
-#define DIFF_CRITICAL 0.2
+#define STRETCH_CRITICAL 1.1
 
 //Cloth Constants
 #define PARTICLE_MASS 0.01 //in kg
-#define STIFFNESS 100.0 //in N/m
-#define DAMPING_COEFF 1 //in kg/s
+
+//Spring Constants
+#define K_STRUCT 50.0 //in N/m
+#define K_SHEAR 50.0
+#define K_FLEXION 51.0
+
+#define DAMPING_STRUCT 0.25
+#define DAMPING_SHEAR 0.25
+#define DAMPING_FLEXION 0.25
 
 //Rendering Constants
-#define MIN_BOUND (-1.0f)
-#define MAX_BOUND (1.0f)
+#define MIN_BOUND (-3.0f)
+#define MAX_BOUND (3.0f)
 #define BOUND_LENGTH ((MAX_BOUND) - (MIN_BOUND))
 
 #define LEFT 0

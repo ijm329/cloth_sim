@@ -48,6 +48,32 @@ Cloth::~Cloth()
     free(springs);
 }
 
+inline float get_stiffness(spring_type_t type)
+{
+    switch(type)
+    {
+        case STRUCTURAL:
+            return K_STRUCT;
+        case SHEAR:
+            return K_SHEAR;
+        case FLEXION:
+            return K_FLEXION;
+    }
+}
+
+inline float get_damping(spring_type_t type)
+{
+    switch(type)
+    {
+        case STRUCTURAL:
+            return DAMPING_STRUCT;
+        case SHEAR:
+            return DAMPING_SHEAR;
+        case FLEXION:
+            return DAMPING_FLEXION;
+    }
+}
+
 // Dir: 0 ==> left 1 ==> right
 void Cloth::make_diagonal_link(int i, int j, int &spring_cnt, int dir, 
                                float len)
@@ -69,8 +95,8 @@ void Cloth::make_diagonal_link(int i, int j, int &spring_cnt, int dir,
         //ASSERT(springs[spring_cnt].right < get_num_particles());
     }
     springs[spring_cnt].rest_length = len;
-    springs[spring_cnt].k = STIFFNESS;
-    springs[spring_cnt].damping = DAMPING_COEFF;
+    springs[spring_cnt].k = get_stiffness(SHEAR);
+    springs[spring_cnt].damping = get_damping(SHEAR);
     springs[spring_cnt].spring_type = SHEAR;
     spring_cnt++;
     ASSERT(spring_cnt < num_springs);
@@ -83,8 +109,8 @@ void Cloth::make_structural_link(int i, int j, int target, int &spring_cnt,
             particles[(i * num_particles_width) + j]);
     springs[spring_cnt].right = &(particles[target]);
     springs[spring_cnt].rest_length = len;
-    springs[spring_cnt].k = STIFFNESS;
-    springs[spring_cnt].damping = DAMPING_COEFF;
+    springs[spring_cnt].k = get_stiffness(type);
+    springs[spring_cnt].damping = get_damping(type);
     springs[spring_cnt].spring_type = type;
     spring_cnt++;
     ASSERT(spring_cnt <= num_springs);
@@ -105,8 +131,8 @@ void Cloth::init()
             x = BOUND_LENGTH*x + MIN_BOUND;
             z = BOUND_LENGTH*z + MIN_BOUND;
 
-            particles[i*num_particles_width + j].pos = {x, 0.0f, z};
-            particles[i*num_particles_width + j].prev_pos = {x, 0.0f, z};
+            particles[i*num_particles_width + j].pos = {x, 1.0f, z};
+            particles[i*num_particles_width + j].prev_pos = {x, 1.0f, z};
 
             //give the border particles a different color
             float r,g,b;
@@ -135,7 +161,7 @@ void Cloth::init()
             if(i == 0)
             {
                 b = 0.0f;
-                fixed = true;
+                //fixed = true;
             }
             if(i == num_particles_width-1)
             {
@@ -312,15 +338,11 @@ void Cloth::apply_forces()
 {
     //accumulate force of gravity on all particles
     vector3D gravity(0.0f, -9.81f, 0.0f);
-    //vector3D gravity(0.0f, 0.0f, 0.0f);
 
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
     {
-        if(!particles[i].fixed)
-            particles[i].force = PARTICLE_MASS * gravity;
-        else
-            particles[i].force *= 0;
+        particles[i].force = PARTICLE_MASS * gravity;
     }
 
     apply_spring_forces();
@@ -329,7 +351,7 @@ void Cloth::apply_forces()
 
 inline vector3D get_velocity(particle *p)
 {
-    return (p->pos - p->prev_pos) / (2 * TIME_STEP);
+    return (p->pos - p->prev_pos) / TIME_STEP;
 }
 
 void Cloth::apply_spring_forces()
@@ -342,6 +364,7 @@ void Cloth::apply_spring_forces()
 
         //vector from left mass to right mass
         vector3D dir = (p2->pos) - (p1->pos);
+
         //rest vector is a the vector from left mass to right mass with
         //magnitude = length of spring
         vector3D rest = springs[i].rest_length * dir.unit();
@@ -374,7 +397,7 @@ void Cloth::reset_fixed_particles()
                 x = BOUND_LENGTH*x + MIN_BOUND;
                 z = BOUND_LENGTH*z + MIN_BOUND;
 
-                particles[index].pos = {x, 0.0f, z};
+                particles[index].pos = {x, 1.0f, z};
             }
         }
     }
@@ -385,32 +408,43 @@ void Cloth::satisfy_constraints()
     int num_springs = get_num_springs();
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
+        int count = 0;
         for(int i = 0; i < num_springs; i++)
         {
             particle *p1 = springs[i].left;
             particle *p2 = springs[i].right;
-            vector3D diff = (p2->pos)-(p1->pos);
+            vector3D diff = (p2->pos) - (p1->pos);
 
             float new_length = diff.norm();
-            float diff_ratio = (new_length - springs[i].rest_length)/new_length;
-
-            //std::cout<<diff_ratio<<std::endl;
-        //    //if(diff_ratio > DIFF_CRITICAL)
-        //    if(1)
-        //    {
-        //        if(!p1->fixed && !p2->fixed)
-        //        {
-                    //p1->pos -= diff*0.5*diff_ratio;
-                    //p2->pos += diff*0.5*diff_ratio;
-        //        }
-        //        else if(!p1->fixed)
-        //            p1->pos -= diff*diff_ratio;
-        //        else if(!p2->fixed)
-        //            p2->pos += diff*diff_ratio;
-        //    }
+            if(new_length > (STRETCH_CRITICAL*springs[i].rest_length))
+            {
+                count++;
+                float move_dist = (new_length - 
+                        (STRETCH_CRITICAL*springs[i].rest_length))/2.0;
+                p1->pos += move_dist * diff.unit();
+                p2->pos -= move_dist * diff.unit();
+            }
         }
+        std::cout<<count<<"/"<<num_springs<<std::endl;
         reset_fixed_particles();
     }
+
+    //        //std::cout<<diff_ratio<<std::endl;
+    //        if(diff_ratio > DIFF_CRITICAL)
+    //        {
+    //            if(!p1->fixed && !p2->fixed)
+    //            {
+    //                p1->pos -= diff*0.5*diff_ratio;
+    //                p2->pos += diff*0.5*diff_ratio;
+    //            }
+    //            else if(!p1->fixed)
+    //                p1->pos -= diff*diff_ratio;
+    //            else if(!p2->fixed)
+    //                p2->pos += diff*diff_ratio;
+    //        }
+    //    }
+    //    reset_fixed_particles();
+    //}
 
 }
 
