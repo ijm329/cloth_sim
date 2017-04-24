@@ -182,8 +182,8 @@ void Cloth::init()
 
     float horizontal_length = (BOUND_LENGTH) / ((float)num_particles_width);
     float vertical_length = (BOUND_LENGTH) / ((float)num_particles_height);
-    float diagonal_length = sqrtf(powf(horizontal_length, BOUND_LENGTH) + 
-                            powf(vertical_length, BOUND_LENGTH));
+    float diagonal_length = sqrtf(POW_2(horizontal_length) + 
+                            POW_2(vertical_length));
 
     //create links for each spring
     int i, j;

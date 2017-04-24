@@ -37,6 +37,8 @@
 #define MAX_BOUND (3.0f)
 #define BOUND_LENGTH ((MAX_BOUND) - (MIN_BOUND))
 
+#define POW_2(base) powf(base, 2.0)
+
 #define LEFT 0
 #define RIGHT 1
 #define DEBUG

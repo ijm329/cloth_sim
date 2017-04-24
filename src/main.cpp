@@ -31,7 +31,7 @@ void render_scene()
     
     start_time = CycleTimer::currentSeconds();
 
-    //cloth.simulate_timestep();
+    cloth.simulate_timestep();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
 
