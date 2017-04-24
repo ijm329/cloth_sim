@@ -112,12 +112,12 @@ void Cloth::init()
             if(j == 0)
             {
                 r = 0.0f;
-                fixed = true;
+                //fixed = true;
             }
             if(j == num_particles_height - 1)
             {
                 g = 0.0f;
-                fixed = true;
+                //fixed = true;
             }
             if(i == 0)
             {
@@ -128,7 +128,7 @@ void Cloth::init()
             {
                 r = 0.0f;
                 g = 0.0f;
-                fixed = true;
+                //fixed = true;
             }
 
             particles[i*num_particles_width + j].color = {r, g, b};
@@ -306,8 +306,8 @@ void Cloth::apply_forces()
         particles[i].force = PARTICLE_MASS * gravity;
     }
 
-    apply_spring_forces();
-    apply_damping_forces();
+    //apply_spring_forces();
+    //apply_damping_forces();
     apply_wind_forces();
 }
 
@@ -341,34 +341,23 @@ void Cloth::apply_wind_forces()
     //TODO: FIXME
 }
 
-void Cloth::reset_border_particles()
+void Cloth::reset_fixed_particles()
 {
-    //reset positions for row 0 and row height-1
-    float max_height_row = (float)(num_particles_height-1)/num_particles_height;
-    max_height_row = BOUND_LENGTH*max_height_row + MIN_BOUND;
-
-    for(int i = 0; i < num_particles_width; i++)
-    {
-        float x = (float)i/num_particles_width;
-        x = BOUND_LENGTH*x + MIN_BOUND;
-
-        particles[i].pos = {x, 0.0f, MIN_BOUND};
-        particles[(num_particles_height-1)*num_particles_width+i].pos = 
-                                            {x, 0.0f, max_height_row};
-    }
-
-    //reset positions for col 0 and col width -1
-    float max_width_col = (float)(num_particles_width-1)/num_particles_width;
-    max_width_col = BOUND_LENGTH*max_width_col + MIN_BOUND;
-
     for(int i = 0; i < num_particles_height; i++)
     {
-        float z = (float)i/num_particles_height;
-        z = BOUND_LENGTH*z + MIN_BOUND;
+        for(int j = 0; j < num_particles_width; j++)
+        {
+            int index = i*num_particles_width + j;
+            if(particles[index].fixed)
+            {
+                float x = (float)j/num_particles_width;
+                float z = (float)i/num_particles_height;
+                x = BOUND_LENGTH*x + MIN_BOUND;
+                z = BOUND_LENGTH*z + MIN_BOUND;
 
-        particles[i*num_particles_width].pos = {MIN_BOUND, 0.0f, z};
-        particles[i*num_particles_width+num_particles_width-1].pos = 
-                                                {max_width_col, 0.0f, z};
+                particles[index].pos = {x, 0.0f, z};
+            }
+        }
     }
 }
 
@@ -377,31 +366,31 @@ void Cloth::satisfy_constraints()
     int num_springs = get_num_springs();
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
-        for(int i = 0; i < num_springs; i++)
-        {
-            particle p1 = particles[springs[i].left];
-            particle p2 = particles[springs[i].right];
-            vector3D diff = p2.pos-p1.pos;
+        //for(int i = 0; i < num_springs; i++)
+        //{
+        //    particle& p1 = particles[springs[i].left];
+        //    particle& p2 = particles[springs[i].right];
+        //    vector3D diff = p2.pos-p1.pos;
 
-            float new_length = diff.norm();
-            float diff_ratio = fabs((new_length - springs[i].rest_length)/
-                                     new_length);
+        //    float new_length = diff.norm();
+        //    float diff_ratio = fabs((new_length - springs[i].rest_length)/
+        //                             new_length);
 
-            //std::cout<<diff_ratio<<std::endl;
-            //if(diff_ratio > DIFF_CRITICAL)
-            //{
-                if(!p1.fixed && !p2.fixed)
-                {
-                    p1.pos -= diff*0.5*diff_ratio;
-                    p2.pos += diff*0.5*diff_ratio;
-                }
-                else if(!p1.fixed)
-                    p1.pos -= diff*diff_ratio;
-                else if(!p2.fixed)
-                    p2.pos += diff*diff_ratio;
-            //}
-        }
-        reset_border_particles();
+        //    //std::cout<<diff_ratio<<std::endl;
+        //    if(diff_ratio > DIFF_CRITICAL)
+        //    {
+        //        if(!p1.fixed && !p2.fixed)
+        //        {
+        //            p1.pos -= diff*0.5*diff_ratio;
+        //            p2.pos += diff*0.5*diff_ratio;
+        //        }
+        //        else if(!p1.fixed)
+        //            p1.pos -= diff*diff_ratio;
+        //        else if(!p2.fixed)
+        //            p2.pos += diff*diff_ratio;
+        //    }
+        //}
+        reset_fixed_particles();
     }
 
 }

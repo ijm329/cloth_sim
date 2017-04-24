@@ -15,19 +15,23 @@
 #endif
 #include "vector3D.h"
 
+//Simulation Constants
 #define TIME_STEP 0.002 //in seconds
-#define PARTICLE_MASS 0.001 //in kg
-#define LEFT 0 
-#define RIGHT 1
-#define NUM_CONSTRAINT_ITERS 15
+#define NUM_CONSTRAINT_ITERS 1
 #define DIFF_CRITICAL 0.2
+
+//Cloth Constants
+#define PARTICLE_MASS 1 //in kg
 #define STIFFNESS 0.1 //in N/m
 #define DAMPING_COEFF 0.005 //in kg/s
 
+//Rendering Constants
 #define MIN_BOUND (-2.0f)
 #define MAX_BOUND (2.0f)
 #define BOUND_LENGTH ((MAX_BOUND) - (MIN_BOUND))
 
+#define LEFT 0
+#define RIGHT 1
 #define DEBUG
 #ifdef DEBUG
 #define ASSERT(cond) assert(cond)
@@ -58,6 +62,7 @@ typedef struct spring
     int right;
     float rest_length;
     float k;
+    float damping;
     spring_type_t spring_type;
 } spring;
 
@@ -82,7 +87,7 @@ class Cloth
                                 float len);
         void make_structural_link(int i, int j, int target, int &spring_cnt, 
                                   float len, spring_type_t type);
-        void reset_border_particles();
+        void reset_fixed_particles();
         void apply_damping_forces();
 
     public:

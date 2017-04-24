@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 16
+#define NUM_CLOTH_POINTS 3
 
 Cloth cloth(NUM_CLOTH_POINTS);
 
@@ -31,7 +31,7 @@ void render_scene()
     
     start_time = CycleTimer::currentSeconds();
 
-    cloth.simulate_timestep();
+    //cloth.simulate_timestep();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
 
@@ -120,6 +120,8 @@ void process_keys(unsigned char key, int x, int y)
         exit(0);
     else if(key == 32)
         cloth.simulate_timestep();
+    else if((key == 'r') || (key == 'R'))
+        cloth.init();
 }
 
 void printVersionInfo()
