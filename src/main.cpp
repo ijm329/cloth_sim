@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 3
+#define NUM_CLOTH_POINTS 64
 
 Cloth cloth(NUM_CLOTH_POINTS);
 
@@ -31,7 +31,7 @@ void render_scene()
     
     start_time = CycleTimer::currentSeconds();
 
-    //cloth.simulate_timestep();
+    cloth.simulate_timestep();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
 
@@ -153,7 +153,9 @@ void glInit(int argc, char **argv)
     glShadeModel(GL_SMOOTH);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPointSize(3.0);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glPointSize(2.0);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);
