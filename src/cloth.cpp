@@ -387,29 +387,6 @@ void Cloth::apply_spring_forces()
     }
 }
 
-//returns the wind direction vector
-inline vector3D Cloth::get_wind_vec()
-{
-    return vector3D(WIND_VEC_X, WIND_VEC_Y, WIND_VEC_Z);
-}
-
-void Cloth::update_wind_forces(particle p1, particle p2, particle p3, particle p4)
-{
-    vector3D norm1 = get_normal_vec(p1.pos, p2.pos, p3.pos);
-    vector3D norm2 = get_normal_vec(p4.pos, p1.pos, p3.pos);
-    vector3D wind_vec = get_wind_vec();
-    vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind_vec));
-    vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind_vec));
-    //applying force 1
-    p1.force += wind_force1;
-    p2.force += wind_force1;
-    p3.force += wind_force1;
-    //applying force 2
-    p1.force += wind_force2;
-    p4.force += wind_force2;
-    p3.force += wind_force2;
-}
-
 void Cloth::apply_wind_forces()
 {
     //calculate vector normal to the points on the mesh to account for 
@@ -419,11 +396,32 @@ void Cloth::apply_wind_forces()
     {
         for(int j = 0; j < num_particles_height - 1; j++)
         {
-            particle curr = particles[j * num_particles_width + i];
-            particle right = particles[j * num_particles_width + i + 1];
-            particle lower = particles[(j + 1) * num_particles_width + i];
-            particle diagonal = particles[(j + 1) * num_particles_width + i + 1];
-            update_wind_forces(right, curr, lower, diagonal);
+            int curr_idx = j * num_particles_width + i;
+            int right_idx = curr_idx + 1;
+            int lower_idx = (j + 1) * num_particles_width + i;
+            int diag_idx = lower_idx + 1;
+
+            vector3D curr = particles[curr_idx].pos;
+            vector3D right = particles[right_idx].pos;
+            vector3D lower = particles[lower_idx].pos;
+            vector3D diagonal = particles[diag_idx].pos;
+
+            // make two triangles to complete a square 
+            vector3D wind(WIND_X, WIND_Y, WIND_Z);
+            vector3D norm1 = get_normal_vec(right, curr, lower);
+            vector3D norm2 = get_normal_vec(diagonal, right, lower);
+            vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
+            vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
+
+
+            //force 1
+            particles[right_idx].force += wind_force1;
+            particles[curr_idx].force += wind_force1;
+            particles[lower_idx].force += wind_force1;
+            //force2
+            particles[right_idx].force += wind_force2;
+            particles[diag_idx].force += wind_force2;
+            particles[lower_idx].force += wind_force2;
         }
     }
 }
