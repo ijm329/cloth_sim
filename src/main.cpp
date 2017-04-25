@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 4
+#define NUM_CLOTH_POINTS 64
 
 Cloth cloth(NUM_CLOTH_POINTS);
 
@@ -134,7 +134,7 @@ void glInit(int argc, char **argv)
 {
     glutInit(&argc, argv);
     glutInitWindowSize(DEFAULT_W, DEFAULT_H);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutCreateWindow("cloth_sim");
 
     //glew init
@@ -148,8 +148,10 @@ void glInit(int argc, char **argv)
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POLYGON_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
     glShadeModel(GL_SMOOTH);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

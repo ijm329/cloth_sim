@@ -351,7 +351,7 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     }
     glEnd(); */
     glEnableVertexAttribArray(0);
-    glColor3f(0.0, 1.0, 1.0);
+    glColor3f(0.0, 0.90, 0.93);
     for(int i = 0; i < num_particles_width - 1; i++)
     {
         for(int j = 0; j < num_particles_height - 1; j++)
