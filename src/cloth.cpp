@@ -393,20 +393,22 @@ void Cloth::apply_wind_forces()
         for(int j = 0; j < num_particles_height - 1; j++)
         {
             int curr_idx = j * num_particles_width + i;
-            int right_idx = j * num_particles_width + i + 1;
+            int right_idx = curr_idx + 1;
             int lower_idx = (j + 1) * num_particles_width + i;
-            int diag_idx = (j + 1) * num_particles_width + i + 1;
+            int diag_idx = lower_idx + 1;
             vector3D curr = particles[curr_idx].pos;
             vector3D right = particles[right_idx].pos;
             vector3D lower = particles[lower_idx].pos;
             vector3D diagonal = particles[diag_idx].pos;
+
             // make two triangles to complete a square 
+            vector3D wind(WIND_X, WIND_Y, WIND_Z);
             vector3D norm1 = get_normal_vec(right, curr, lower);
             vector3D norm2 = get_normal_vec(diagonal, right, lower);
-            vector3D wind_force1 = norm1 * (norm1.unit().dot_product(
-            vector3D(10000.0,15000000.0,14200.2)*TIME_STEP * TIME_STEP));
-            vector3D wind_force2 = norm2 * (norm2.unit().dot_product(
-            vector3D(10000.0,15000000.0,14200.2)*TIME_STEP * TIME_STEP));
+            vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
+            vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
+
+
             //force 1
             particles[right_idx].force += wind_force1;
             particles[curr_idx].force += wind_force1;

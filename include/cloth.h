@@ -32,6 +32,11 @@
 #define DAMPING_SHEAR 0.25
 #define DAMPING_FLEXION 0.25
 
+//Wind Constants
+#define WIND_X 0.0
+#define WIND_Y 0.0
+#define WIND_Z 12.0
+
 //Rendering Constants
 #define MIN_BOUND (-3.0f)
 #define MAX_BOUND (3.0f)
