@@ -333,14 +333,60 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     glGetFloatv(GL_LINE_WIDTH_RANGE, line_width);
     glLineWidth(line_width[0]);
 
-    glColor3f(0.5, 0.5, 0.5);
-    glBegin(GL_LINES);
+    float color_arr[4][4] = {{0.5f, 0.5f, 0.5f, 1.0f}, {0.5f, 0.5f, 0.5f, 1.0f},
+                          {0.5f, 0.5f, 0.5f, 1.0f}, {0.5f, 0.5f, 0.5f, 1.0f}};
+    /*glBegin(GL_LINES);
     for(int i = 0; i < num_shear_struct; i++)
     {
         glVertex3fv(&(springs[i].left->pos.x));
         glVertex3fv(&(springs[i].right->pos.x));
     }
-    glEnd();
+    glEnd(); */
+    vector3D point_arr[3];
+    glEnableVertexAttribArray(0);
+    glColorPointer(4, GL_FLOAT, 4 * sizeof(float), color_arr);
+    for(int i = 0; i < num_particles_width - 1; i++)
+    {
+        for(int j = 0; j < num_particles_height - 1; j++)
+        {
+            
+            int curr_idx = j * num_particles_width + i;
+            int right_idx = curr_idx + 1;
+            int lower_idx = (j + 1) * num_particles_width + i;
+            int diag_idx = lower_idx + 1;
+            vector3D middle_pos = (particles[curr_idx].pos + 
+            particles[diag_idx].pos) / 2;
+
+            //triangle 1 
+            point_arr[0] = particles[curr_idx].pos;
+            point_arr[1] = middle_pos;
+            point_arr[2] = particles[lower_idx].pos;
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr);
+            glDrawArrays(GL_LINE_LOOP, 0, 3); 
+
+            //triangle 2 
+            point_arr[0] = particles[curr_idx].pos;
+            point_arr[1] = particles[right_idx].pos;
+            point_arr[2] = middle_pos;
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr); 
+            glDrawArrays(GL_LINE_LOOP, 0, 3);
+
+            //triangle 3
+            point_arr[0] = particles[diag_idx].pos;
+            point_arr[1] = particles[right_idx].pos;
+            point_arr[2] = middle_pos;
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr); 
+            glDrawArrays(GL_LINE_LOOP, 0, 3);
+
+            //triangle 4 
+            point_arr[0] = particles[diag_idx].pos;
+            point_arr[1] = particles[lower_idx].pos;
+            point_arr[2] = middle_pos;
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr); 
+            glDrawArrays(GL_LINE_LOOP, 0, 3);
+        }
+    }
+    glDisableVertexAttribArray(0);
 }
 
 void Cloth::apply_forces()
