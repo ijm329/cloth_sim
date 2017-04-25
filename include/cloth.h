@@ -32,6 +32,11 @@
 #define DAMPING_SHEAR 0.25
 #define DAMPING_FLEXION 0.25
 
+//Wind acceleration constants
+#define WIND_VEC_X 0.0 
+#define WIND_VEC_Y 15000.0
+#define WIND_VEC_Z 1500.0
+
 //Rendering Constants
 #define MIN_BOUND (-3.0f)
 #define MAX_BOUND (3.0f)
@@ -97,6 +102,9 @@ class Cloth
                                   float len, spring_type_t type);
         void reset_fixed_particles();
         vector3D get_normal_vec(vector3D p1, vector3D p2, vector3D p3);
+        inline vector3D get_wind_vec();
+        void update_wind_forces(particle p1, particle p2, particle p3, particle p4);
+
 
     public:
         Cloth(int n = 2);
