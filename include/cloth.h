@@ -102,6 +102,7 @@ class Cloth
                                   float len, spring_type_t type);
         void reset_fixed_particles();
         vector3D get_normal_vec(vector3D p1, vector3D p2, vector3D p3);
+        void draw_triangle(vector3D p1, vector3D p2, vector3D p3);
 
     public:
         Cloth(int n = 2);

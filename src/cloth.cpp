@@ -265,7 +265,7 @@ void Cloth::render(float rotate_x, float rotate_y, float translate_z)
     glRotatef(rotate_x, 1.0, 0.0, 0.0);
     glRotatef(rotate_y, 0.0, 1.0, 0.0);
 
-    render_particles(rotate_x, rotate_y, translate_z);
+    //render_particles(rotate_x, rotate_y, translate_z);
     render_springs(rotate_x, rotate_y, translate_z);
 }
 
@@ -320,6 +320,16 @@ vector3D Cloth::get_normal_vec(vector3D p1, vector3D p2, vector3D p3)
     return cross_prod;
 }
 
+void Cloth::draw_triangle(vector3D p1, vector3D p2, vector3D p3)
+{
+     vector3D point_arr[3];
+     point_arr[0] = p1;
+     point_arr[1] = p2;
+     point_arr[2] = p3;
+     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr);
+     glDrawArrays(GL_TRIANGLES, 0, 3);
+ }
+
 void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
 {
     //rendering structural and shear springs only
@@ -333,8 +343,6 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     glGetFloatv(GL_LINE_WIDTH_RANGE, line_width);
     glLineWidth(line_width[0]);
 
-    float color_arr[4][4] = {{0.5f, 0.5f, 0.5f, 1.0f}, {0.5f, 0.5f, 0.5f, 1.0f},
-                          {0.5f, 0.5f, 0.5f, 1.0f}, {0.5f, 0.5f, 0.5f, 1.0f}};
     /*glBegin(GL_LINES);
     for(int i = 0; i < num_shear_struct; i++)
     {
@@ -342,9 +350,8 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
         glVertex3fv(&(springs[i].right->pos.x));
     }
     glEnd(); */
-    vector3D point_arr[3];
     glEnableVertexAttribArray(0);
-    glColorPointer(4, GL_FLOAT, 4 * sizeof(float), color_arr);
+    glColor3f(0.0, 1.0, 1.0);
     for(int i = 0; i < num_particles_width - 1; i++)
     {
         for(int j = 0; j < num_particles_height - 1; j++)
@@ -358,32 +365,20 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
             particles[diag_idx].pos) / 2;
 
             //triangle 1 
-            point_arr[0] = particles[curr_idx].pos;
-            point_arr[1] = middle_pos;
-            point_arr[2] = particles[lower_idx].pos;
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr);
-            glDrawArrays(GL_LINE_LOOP, 0, 3); 
+            draw_triangle(particles[curr_idx].pos, middle_pos, 
+            particles[lower_idx].pos);
 
             //triangle 2 
-            point_arr[0] = particles[curr_idx].pos;
-            point_arr[1] = particles[right_idx].pos;
-            point_arr[2] = middle_pos;
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr); 
-            glDrawArrays(GL_LINE_LOOP, 0, 3);
+            draw_triangle(particles[curr_idx].pos, particles[right_idx].pos, 
+            middle_pos);
 
             //triangle 3
-            point_arr[0] = particles[diag_idx].pos;
-            point_arr[1] = particles[right_idx].pos;
-            point_arr[2] = middle_pos;
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr); 
-            glDrawArrays(GL_LINE_LOOP, 0, 3);
+            draw_triangle(particles[diag_idx].pos, particles[right_idx].pos, 
+            middle_pos);
 
             //triangle 4 
-            point_arr[0] = particles[diag_idx].pos;
-            point_arr[1] = particles[lower_idx].pos;
-            point_arr[2] = middle_pos;
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr); 
-            glDrawArrays(GL_LINE_LOOP, 0, 3);
+            draw_triangle(particles[diag_idx].pos, particles[lower_idx].pos, 
+            middle_pos);
         }
     }
     glDisableVertexAttribArray(0);
