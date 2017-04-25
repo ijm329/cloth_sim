@@ -16,17 +16,17 @@
 #include "vector3D.h"
 
 //Simulation Constants
-#define TIME_STEP 0.002 //in seconds
-#define NUM_CONSTRAINT_ITERS 1
+#define TIME_STEP 0.00314 //in seconds
+#define NUM_CONSTRAINT_ITERS 300
 #define STRETCH_CRITICAL 1.1
 
 //Cloth Constants
 #define PARTICLE_MASS 0.01 //in kg
 
 //Spring Constants
-#define K_STRUCT 50.0 //in N/m
-#define K_SHEAR 50.0
-#define K_FLEXION 51.0
+#define K_STRUCT 100.0 //in N/m
+#define K_SHEAR 100.0
+#define K_FLEXION 100.0
 
 #define DAMPING_STRUCT 0.25
 #define DAMPING_SHEAR 0.25
@@ -96,6 +96,7 @@ class Cloth
         void make_structural_link(int i, int j, int target, int &spring_cnt, 
                                   float len, spring_type_t type);
         void reset_fixed_particles();
+        vector3D get_normal_vec(vector3D p1, vector3D p2, vector3D p3);
 
     public:
         Cloth(int n = 2);

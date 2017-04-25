@@ -96,6 +96,18 @@ typedef struct vector3D
         y *= norm_inv;
         z *= norm_inv;
     }
+    vector3D cross_product(const vector3D& l2) const
+    {
+        return vector3D(y * l2.z - z * l2.y, -(x * l2.z - z * l2.x),
+        (x * l2.y - y * l2.x));
+    }
+
+    float dot_product(const vector3D& l2) const
+    {
+        float dp;
+        dp = x * l2.x + y * l2.y + z * l2.z;
+        return dp;
+    }
 
 } vector3D;
 
