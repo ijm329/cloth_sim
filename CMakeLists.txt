@@ -6,7 +6,7 @@ find_package(Threads REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(GLUT REQUIRED)
-find_package(CUDA REQUIRED)
+find_package(CUDA)
 
 #set compiler flags
 if(APPLE)
@@ -52,6 +52,8 @@ if(LINUX)
     endif()
 endif(LINUX)
 
+set(CUDA_NVCC_FLAGS "-O3")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture compute_35")
+list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
 
 add_subdirectory(src)
