@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
 project(cloth_sim)
 
+find_package(OpenGL REQUIRED)
+find_package(Threads REQUIRED)
+find_package(Freetype REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(GLUT REQUIRED)
+find_package(CUDA REQUIRED)
+
 #set compiler flags
 if(APPLE)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -45,10 +52,6 @@ if(LINUX)
     endif()
 endif(LINUX)
 
-find_package(OpenGL REQUIRED)
-find_package(Threads REQUIRED)
-find_package(Freetype REQUIRED)
-find_package(GLEW REQUIRED)
-find_package(GLUT REQUIRED)
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture compute_35")
 
 add_subdirectory(src)

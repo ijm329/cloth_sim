@@ -1,10 +1,10 @@
 cmake_minimum_required (VERSION 2.8)
 
-file(GLOB SOURCES *.cpp)
+file(GLOB CPP_SOURCES "*.cpp")
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(cloth_sim ${SOURCES})
+add_executable(cloth_sim ${CPP_SOURCES})
 target_link_libraries(cloth_sim
                       ${GLEW_LIBRARIES} 
                       ${GLUT_LIBRARIES} 
