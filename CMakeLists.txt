@@ -52,8 +52,10 @@ if(LINUX)
     endif()
 endif(LINUX)
 
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 set(CUDA_NVCC_FLAGS "-O3")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --gpu-architecture compute_35")
-list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER}")
 
 add_subdirectory(src)
