@@ -1,20 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <helper_gl.h>
-
+#include <GL/glew.h>
+#include <GL/glut.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 #include <cuda_gl_interop.h>
-
-#include <GL/glut.h>
-#include <GL/glx.h>
-#include 
+#include <vector_types.h>
 
 #include "cycleTimer.h"
 
-extern float toBW(int bytes, float sec);
+// return GB/s
+float toBW(int bytes, float sec) {
+  return static_cast<float>(bytes) / (1024. * 1024. * 1024.) / sec;
+}
 
 __global__ void
 saxpy_kernel(int N, float alpha, float* x, float* y, float* result) {
@@ -126,3 +126,35 @@ printCudaInfo() {
     }
     printf("---------------------------------------------------------\n");
 }
+
+void run_saxpy()
+{
+    int N = 20 * 1000 * 1000;
+    const float alpha = 2.0f;
+    float* xarray = new float[N];
+    float* yarray = new float[N];
+    float* resultarray = new float[N];
+
+    // load X, Y, store result
+    for (int i=0; i<N; i++) {
+        xarray[i] = yarray[i] = i % 10;
+        resultarray[i] = 0.f;
+   }
+
+    printCudaInfo();
+
+    for (int i=0; i<3; i++) {
+      saxpyCuda(N, alpha, xarray, yarray, resultarray);
+    }
+
+    delete [] xarray;
+    delete [] yarray;
+    delete [] resultarray;
+}
+
+int main(int argc, char **argv)
+{
+    run_saxpy();
+    return 0;
+}
+

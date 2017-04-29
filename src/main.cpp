@@ -202,21 +202,21 @@ void vector3Dtest()
 int main(int argc, char **argv)
 {
     //initialize GLUT and create window
-    glInit(argc, argv);
-    cloth.init();
+    //glInit(argc, argv);
+    //cloth.init();
 
-    //vector3Dtest();
+    ////vector3Dtest();
 
-    //register GLUT callbacks
-    glutDisplayFunc(render_scene);
-    glutReshapeFunc(resize_window);
-    glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
-    glutKeyboardFunc(process_keys);
-    glutMouseFunc(mouse_handler);
-    glutMotionFunc(move_camera);
+    ////register GLUT callbacks
+    //glutDisplayFunc(render_scene);
+    //glutReshapeFunc(resize_window);
+    //glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
+    //glutKeyboardFunc(process_keys);
+    //glutMouseFunc(mouse_handler);
+    //glutMotionFunc(move_camera);
 
-    //enter GLUT event processing cycle
-    glutMainLoop();
+    ////enter GLUT event processing cycle
+    //glutMainLoop();
 
     return 0;
 }
