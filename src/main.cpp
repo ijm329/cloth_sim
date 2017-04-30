@@ -147,6 +147,7 @@ void glInit(int argc, char **argv)
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
+    //smoothing
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_POLYGON_SMOOTH);
@@ -154,22 +155,27 @@ void glInit(int argc, char **argv)
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
+    //blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    //lighting
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
     GLfloat light_pos[4] = {0.0, 2.0, 0.0, 0.0};
-    GLfloat light_diffuse[4] = {1.0, 1.0, 1.0, 1.0};
-
-    GLfloat cloth_shininess[1] = {50.0f};
+    GLfloat light_diffuse[3] = {1.0, 1.0, 1.0};
+    GLfloat light_ambient[3] = {0.0f, 0.0f, 0.0f};
 
     glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
     glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-    glMaterialfv(GL_FRONT, GL_SHININESS, cloth_shininess);
+
+    //material properties
+    GLfloat cloth_shininess[1] = {100.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, cloth_shininess);
     
     glShadeModel(GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
