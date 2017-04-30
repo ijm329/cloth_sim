@@ -6,7 +6,7 @@ find_package(Threads REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(GLUT REQUIRED)
-find_package(CUDA)
+find_package(CUDA QUIET)
 
 #set compiler flags
 if(APPLE)
