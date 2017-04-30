@@ -103,7 +103,7 @@ class Cloth
                                   float len, spring_type_t type);
         void reset_fixed_particles();
         vector3D get_normal_vec(vector3D p1, vector3D p2, vector3D p3);
-        void draw_triangle(int index1, int index2, int index3);
+        void draw_triangle(particle *p1, particle *p2, particle *p3);
         void draw_square(int curr_idx, int right_idx, int lower_idx, int diag_idx);
 
     public:

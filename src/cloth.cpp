@@ -322,20 +322,20 @@ vector3D Cloth::get_normal_vec(vector3D p1, vector3D p2, vector3D p3)
     return cross_prod;
 }
 
-void Cloth::draw_triangle(int index1, int index2, int index3)
+void Cloth::draw_triangle(particle *p1, particle *p2, particle *p3)
 {
-    particles[index1].normal.normalize();
-    particles[index2].normal.normalize();
-    particles[index3].normal.normalize();
+    p1->normal.normalize();
+    p2->normal.normalize();
+    p3->normal.normalize();
 
-    glNormal3fv(&(particles[index1].normal.x));
-    glVertex3fv(&(particles[index1].pos.x));
+    glNormal3fv(&(p1->normal.x));
+    glVertex3fv(&(p1->pos.x));
 
-    glNormal3fv(&(particles[index2].normal.x));
-    glVertex3fv(&(particles[index2].pos.x));
+    glNormal3fv(&(p2->normal.x));
+    glVertex3fv(&(p2->pos.x));
 
-    glNormal3fv(&(particles[index3].normal.x));
-    glVertex3fv(&(particles[index3].pos.x));
+    glNormal3fv(&(p3->normal.x));
+    glVertex3fv(&(p3->pos.x));
 
      //vector3D point_arr[3];
      //point_arr[0] = p1;
@@ -345,16 +345,29 @@ void Cloth::draw_triangle(int index1, int index2, int index3)
      //glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void Cloth::draw_square(int curr_idx, int right_idx, int lower_idx, int diag_idx)
+void Cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
+                        int diag_idx)
 {
 
     glColor3f(0.0f, 0.5f, 1.0f);
-    //triangle 1
-    draw_triangle(curr_idx, lower_idx, right_idx);
+    particle *curr = &(particles[curr_idx]);
+    particle *lower = &(particles[lower_idx]);
+    particle *right = &(particles[right_idx]);
+    particle *diag = &(particles[diag_idx]);
 
+    particle mid;
+    mid.pos = (curr->pos + diag->pos)/2.0;
+    mid.normal = curr->normal + lower->normal + right->normal + diag->normal;
+
+    //triangle 1
+    draw_triangle(curr, lower, &mid);
     //triangle 2
-    draw_triangle(lower_idx, diag_idx, right_idx);
- 
+    draw_triangle(lower, diag, &mid);
+    //triangle 3
+    draw_triangle(&mid, diag, right);
+    //triangle 4
+    draw_triangle(curr, &mid, right);
+
 }
 
 void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
@@ -390,7 +403,6 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
             int diag_idx = lower_idx + 1;
 
             draw_square(curr_idx, right_idx, lower_idx, diag_idx);
-
        }
     }
     glEnd();
