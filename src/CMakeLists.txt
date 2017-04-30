@@ -9,7 +9,7 @@ include_directories(${CUDA_INCLUDE_DIRS}
                     ${OPENGL_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-if(CUDA_FOUND)
+if(${CUDA_FOUND})
     cuda_include_directories(${GLEW_INCLUDE_DIRS}
                              ${GLUT_INCLUDE_DIRS}
                              ${OPENGL_INCLUDE_DIRS})
@@ -19,7 +19,7 @@ if(CUDA_FOUND)
                           ${GLEW_LIBRARIES}
                           ${GLUT_LIBRARIES}
                           ${OPENGL_LIBRARIES})
-endif(CUDA_FOUND)
+endif(${CUDA_FOUND})
 
 add_executable(cloth_sim ${CPP_SOURCES})
 target_link_libraries(cloth_sim
