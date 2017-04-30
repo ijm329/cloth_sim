@@ -65,15 +65,15 @@
 
 #define MAX_EPSILON_ERROR 10.0f
 #define THRESHOLD          0.30f
-#define REFRESH_DELAY     1 //ms
+#define REFRESH_DELAY     10 //ms
 
 ////////////////////////////////////////////////////////////////////////////////
 // constants
 const unsigned int window_width  = 512;
 const unsigned int window_height = 512;
 
-const unsigned int mesh_width    = 8;
-const unsigned int mesh_height   = 8;
+const unsigned int mesh_width    = 256;
+const unsigned int mesh_height   = 256;
 
 // vbo variables
 GLuint vbo;
@@ -147,7 +147,6 @@ __global__ void simple_vbo_kernel(float4 *pos, unsigned int width, unsigned int 
     // calculate simple sine wave pattern
     float freq = 4.0f;
     float w = sinf(u*freq + time) * cosf(v*freq + time) * 0.5f;
-    w = 0.0f;
 
     // write output vertex
     pos[y*width+x] = make_float4(u, w, v, 1.0f);
