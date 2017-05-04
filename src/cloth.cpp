@@ -173,6 +173,7 @@ void Cloth::init()
             particles[i*num_particles_width + j].color = {r, g, b};
             particles[i*num_particles_width + j].fixed = fixed;
             particles[i*num_particles_width + j].force = {0.0f, 0.0f, 0.0f};
+            particles[i*num_particles_width + j].normal = {0.0f, 0.0f, 0.0f};
             //particles[i*num_particles_width + j].vel = {0.0f, 0.0f, 0.0f};
 
             //std::cout<<i*num_particles_width+j<<" : " <<
@@ -278,6 +279,7 @@ void Cloth::render_particles(float rotate_x, float rotate_y, float translate_z)
     glColorPointer(3, GL_FLOAT, sizeof(particle), &(particles[0].color.x));
     glDrawArrays(GL_POINTS, 0, num_particles);
     glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
 
     //glBegin(GL_POINTS);
     //for(int i = 0; i < num_particles_height; i++)
@@ -320,15 +322,53 @@ vector3D Cloth::get_normal_vec(vector3D p1, vector3D p2, vector3D p3)
     return cross_prod;
 }
 
-void Cloth::draw_triangle(vector3D p1, vector3D p2, vector3D p3)
+void Cloth::draw_triangle(particle *p1, particle *p2, particle *p3)
 {
-     vector3D point_arr[3];
-     point_arr[0] = p1;
-     point_arr[1] = p2;
-     point_arr[2] = p3;
-     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr);
-     glDrawArrays(GL_TRIANGLES, 0, 3);
- }
+    p1->normal.normalize();
+    p2->normal.normalize();
+    p3->normal.normalize();
+
+    glNormal3fv(&(p1->normal.x));
+    glVertex3fv(&(p1->pos.x));
+
+    glNormal3fv(&(p2->normal.x));
+    glVertex3fv(&(p2->pos.x));
+
+    glNormal3fv(&(p3->normal.x));
+    glVertex3fv(&(p3->pos.x));
+
+     //vector3D point_arr[3];
+     //point_arr[0] = p1;
+     //point_arr[1] = p2;
+     //point_arr[2] = p3;
+     //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr);
+     //glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+void Cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
+                        int diag_idx)
+{
+
+    glColor3f(0.0f, 0.5f, 1.0f);
+    particle *curr = &(particles[curr_idx]);
+    particle *lower = &(particles[lower_idx]);
+    particle *right = &(particles[right_idx]);
+    particle *diag = &(particles[diag_idx]);
+
+    particle mid;
+    mid.pos = (curr->pos + diag->pos)/2.0;
+    mid.normal = curr->normal + lower->normal + right->normal + diag->normal;
+
+    //triangle 1
+    draw_triangle(curr, lower, &mid);
+    //triangle 2
+    draw_triangle(lower, diag, &mid);
+    //triangle 3
+    draw_triangle(&mid, diag, right);
+    //triangle 4
+    draw_triangle(curr, &mid, right);
+
+}
 
 void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
 {
@@ -350,8 +390,8 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
         glVertex3fv(&(springs[i].right->pos.x));
     }
     glEnd(); */
-    glEnableVertexAttribArray(0);
-    glColor3f(0.0, 0.90, 0.93);
+    //glColor3f(0.0, 0.90, 0.93);
+    glBegin(GL_TRIANGLES);
     for(int i = 0; i < num_particles_width - 1; i++)
     {
         for(int j = 0; j < num_particles_height - 1; j++)
@@ -361,27 +401,11 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
             int right_idx = curr_idx + 1;
             int lower_idx = (j + 1) * num_particles_width + i;
             int diag_idx = lower_idx + 1;
-            vector3D middle_pos = (particles[curr_idx].pos + 
-            particles[diag_idx].pos) / 2;
 
-            //triangle 1 
-            draw_triangle(particles[curr_idx].pos, middle_pos, 
-            particles[lower_idx].pos);
-
-            //triangle 2 
-            draw_triangle(particles[curr_idx].pos, particles[right_idx].pos, 
-            middle_pos);
-
-            //triangle 3
-            draw_triangle(particles[diag_idx].pos, particles[right_idx].pos, 
-            middle_pos);
-
-            //triangle 4 
-            draw_triangle(particles[diag_idx].pos, particles[lower_idx].pos, 
-            middle_pos);
-        }
+            draw_square(curr_idx, right_idx, lower_idx, diag_idx);
+       }
     }
-    glDisableVertexAttribArray(0);
+    glEnd();
 }
 
 void Cloth::apply_forces()
@@ -451,9 +475,19 @@ void Cloth::apply_wind_forces()
             vector3D wind(WIND_X, WIND_Y, WIND_Z);
             vector3D norm1 = get_normal_vec(right, curr, lower);
             vector3D norm2 = get_normal_vec(diagonal, right, lower);
+
+            //add norm1 to particles
+            particles[right_idx].normal = norm1;
+            particles[curr_idx].normal = norm1;
+            particles[lower_idx].normal = norm1;
+
+            //add norm2 to particles
+            particles[diag_idx].normal += norm2;
+            particles[right_idx].normal += norm2;
+            particles[lower_idx].normal += norm2;
+
             vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
             vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
-
 
             //force 1
             particles[right_idx].force += wind_force1;

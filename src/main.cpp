@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 8
+#define NUM_CLOTH_POINTS 32
 
 Cloth cloth(NUM_CLOTH_POINTS);
 
@@ -146,16 +146,40 @@ void glInit(int argc, char **argv)
     printVersionInfo();
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
+
+    //smoothing
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_POLYGON_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-    glShadeModel(GL_SMOOTH);
+
+    //blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    //lighting
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    GLfloat light_pos[4] = {0.0, 2.0, 0.0, 0.0};
+    GLfloat light_diffuse[3] = {1.0, 1.0, 1.0};
+    GLfloat light_ambient[3] = {0.0f, 0.0f, 0.0f};
+
+    glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
+    //material properties
+    GLfloat cloth_shininess[1] = {100.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, cloth_shininess);
+    
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_MULTISAMPLE);
     glPointSize(2.0);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -197,7 +221,7 @@ int main(int argc, char **argv)
     glutMouseFunc(mouse_handler);
     glutMotionFunc(move_camera);
 
-    //enter GLUT event processing cycle
+    ////enter GLUT event processing cycle
     glutMainLoop();
 
     return 0;
