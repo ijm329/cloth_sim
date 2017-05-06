@@ -34,12 +34,12 @@
 
 //Wind Constants
 #define WIND_X 0.0
-#define WIND_Y 0.0
-#define WIND_Z 0.0
+#define WIND_Y -1.5
+#define WIND_Z 1.5
 
 //Rendering Constants
-#define MIN_BOUND (-3.0f)
-#define MAX_BOUND (3.0f)
+#define MIN_BOUND (-1.0f)
+#define MAX_BOUND (1.0f)
 #define BOUND_LENGTH ((MAX_BOUND) - (MIN_BOUND))
 
 #define POW_2(base) powf(base, 2.0)
