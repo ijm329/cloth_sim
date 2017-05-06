@@ -526,7 +526,6 @@ void Cloth::satisfy_constraints()
     int num_springs = get_num_springs();
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
-        int count = 0;
         for(int i = 0; i < num_springs; i++)
         {
             particle *p1 = springs[i].left;
@@ -536,11 +535,17 @@ void Cloth::satisfy_constraints()
             float new_length = diff.norm();
             if(new_length > (STRETCH_CRITICAL*springs[i].rest_length))
             {
-                count++;
                 float move_dist = (new_length - 
                         (STRETCH_CRITICAL*springs[i].rest_length))/2.0;
-                p1->pos += move_dist * diff.unit();
-                p2->pos -= move_dist * diff.unit();
+                if(!p1->fixed && !p2->fixed)
+                {
+                    p1->pos += move_dist * diff.unit();
+                    p2->pos -= move_dist * diff.unit();
+                }
+                else if(!p1->fixed)
+                    p1->pos += 2*move_dist * diff.unit();
+                else if(!p2->fixed)
+                    p2->pos -= 2*move_dist * diff.unit();
             }
         }
         reset_fixed_particles();
