@@ -28,13 +28,13 @@
 #define K_SHEAR 100.0
 #define K_FLEXION 100.0
 
-#define DAMPING_STRUCT 0.25
-#define DAMPING_SHEAR 0.25
-#define DAMPING_FLEXION 0.25
+#define DAMPING_STRUCT 0.0175
+#define DAMPING_SHEAR 0.0175
+#define DAMPING_FLEXION 0.0175
 
 //Wind Constants
 #define WIND_X 0.0
-#define WIND_Y -1.5
+#define WIND_Y 0.0
 #define WIND_Z 1.5
 
 //Rendering Constants
