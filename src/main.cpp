@@ -22,7 +22,7 @@ Cloth cloth(NUM_CLOTH_POINTS);
 //mouse controls
 int mouse_old_x, mouse_old_y;
 int mouse_buttons = 0;
-float rotate_x = 0.0, rotate_y = 0.0;
+float rotate_x = 0.0, rotate_y = -45.0;
 float translate_z = MIN_BOUND*3;
 
 void render_scene()
