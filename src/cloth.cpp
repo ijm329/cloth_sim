@@ -526,7 +526,7 @@ void Cloth::satisfy_constraints()
     int num_springs = get_num_springs();
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
-        for(int i = 0; i < num_springs; i++)
+        for(int i = num_springs - 1; i <= 0; i--)
         {
             particle *p1 = springs[i].left;
             particle *p2 = springs[i].right;

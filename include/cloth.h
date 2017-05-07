@@ -35,7 +35,7 @@
 //Wind Constants
 #define WIND_X 0.0
 #define WIND_Y -1.5
-#define WIND_Z 1.5
+#define WIND_Z 15
 
 //Rendering Constants
 #define MIN_BOUND (-1.0f)
