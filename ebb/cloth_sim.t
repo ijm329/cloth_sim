@@ -29,32 +29,24 @@ local L = require 'ebblib'
 
 local vdb       = require 'ebb.lib.vdb'
 local N = 5
-local num_particles_width = N
-local num_particles_height = N
-local num_shear = 2 * (num_particles_width - 1) * (num_particles_height - 1)
-local num_structural = num_particles_height * (num_particles_width - 1) + 
-                       num_particles_width * (num_particles_height - 1)
-local num_flexion = num_particles_height * (num_particles_width - 2) + 
-                    num_particles_width * (num_particles_height - 2)
+local num_particles_width = L.Constant(L.int, N)
+local num_particles_height = L.Constant(L.int, N)
+local num_shear = 2 * (num_particles_width:get() - 1) * (num_particles_height:get() - 1)
+local num_structural = num_particles_height:get() * (num_particles_width:get() - 1) + 
+                       num_particles_width:get() * (num_particles_height:get() - 1)
+local num_flexion = num_particles_height:get() * (num_particles_width:get() - 2) + 
+                    num_particles_width:get() * (num_particles_height:get() - 2)
 local num_springs = num_shear + num_structural + num_flexion
 
 local particles = L.NewRelation {
   name = "particles",
-  size = num_particles_width * num_particles_height,
+  size = num_particles_width:get() * num_particles_height:get(),
 }
-
-local edges = L.NewRelation {
-  name = "edges",
-  -- must account for flexion, shear, and structural springs. 
-  size = num_shear + num_structural + num_flexion,
-} 
-
-
 
 local particle_positions = {}
 local prev_positions = {}
-for zi=0,num_particles_height - 1 do
-  for xi=0,num_particles_width - 1 do
+for zi=0,num_particles_height:get() - 1 do
+  for xi=0,num_particles_width:get() - 1 do
     particle_positions[zi*N + xi + 1] = {xi, 1, zi}
     prev_positions[zi*N + xi + 1] = {xi, 1, zi}
   end
@@ -66,17 +58,6 @@ particles:NewField('prev_pos', L.vec3d):Load(prev_positions)
 particles:NewField('force', L.vec3d):Load({0,0,0})
 particles:NewField('normal', L.vec3d):Load({0,0,0})
 particles:NewField('fixed', L.bool):Load(false)
-
-local springs = {}
-
-
---edge field initialization 
-edges:NewField('rest_length', L.float)
-edges:NewField('k', L.float)
-edges:NewField('damping', L.float)
-edges:NewField('type', L.int)
-edges:NewField('left', particles)
-edges:NewField('right', particles)
 
 -------------------------------------------------------------------------------
 
