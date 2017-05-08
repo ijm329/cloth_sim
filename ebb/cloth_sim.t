@@ -3,7 +3,7 @@ local L = require 'ebblib'
 local vdb       = require 'ebb.lib.vdb'
 
 --particle initialization 
-local N = 40
+local N = 3
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
@@ -213,7 +213,7 @@ local ebb apply_forces(p:particles)
   p.force = PARTICLE_MASS * GRAVITY
   apply_wind_forces(p)
   apply_spring_forces(p)
-  --L.print(L.id(p), p.force)
+  L.print(L.id(p), p.force)
 end
 
 local ebb update_pos(p:particles)
@@ -283,7 +283,7 @@ end
 
 -------------------------------------------------------------------------------
 
-for i=1,100000 do
+for i=1,10 do
   particles:foreach(apply_forces)
   particles:foreach(update_pos)
   particles:foreach(satisfy_constraints)
