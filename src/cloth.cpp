@@ -488,7 +488,7 @@ void Cloth::apply_wind_forces()
 
             vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
             vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
-
+            
             //force 1
             particles[right_idx].force += wind_force1;
             particles[curr_idx].force += wind_force1;
@@ -587,6 +587,10 @@ void Cloth::update_positions()
 void Cloth::simulate_timestep()
 {
     apply_forces();
+    for(int i = 0; i < get_num_particles(); i++)
+    {
+      std::cout << particles[i].normal << std::endl;
+    }
     update_positions();
     satisfy_constraints();
 }
