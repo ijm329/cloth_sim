@@ -3,12 +3,12 @@ local L = require 'ebblib'
 local vdb       = require 'ebb.lib.vdb'
 
 --particle initialization 
-local N = 3
+local N = 40
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
-local H_LEN = BOUND_LENGTH/N
-local D_LEN = H_LEN * L.sqrt(2)
+local H_LEN_LUA = BOUND_LENGTH/N
+local D_LEN_LUA = H_LEN_LUA * math.sqrt(2)
 local num_particles_width = N
 local num_particles_height = N
 
@@ -21,8 +21,8 @@ local STRETCH_CRITICAL = L.Constant(L.float, 1.1)
 local TIME_STEP = L.Constant(L.float, 0.00314)
 local NUM_CONSTRAINT_ITERS = L.Constant(L.int, 300)
 local PARTICLE_MASS = L.Constant(L.float, 0.01)
-local H_LEN = L.Constant(L.float, H_LEN)
-local D_LEN = L.Constant(L.float, D_LEN)
+local H_LEN = L.Constant(L.float, H_LEN_LUA)
+local D_LEN = L.Constant(L.float, D_LEN_LUA)
 
 local particles = L.NewRelation {
   name = "particles",
@@ -175,17 +175,20 @@ local ebb apply_wind_forces(p:particles)
 end
 
 local ebb get_velocity(p)
-  var ret = (p.pos - p.prev_pos) / TIME_STEP
+  var ret = (p.pos - p.prev_pos) * (1.0 / TIME_STEP)
   return L.vec3f(ret)
 end
 
 local ebb apply_spring_force(p1 : particles, p2 : particles, len)
   var dir = p2.pos - p1.pos
   var rest = len * (dir / L.float(L.length(dir)))
-  var disp = dir - rest
+  var disp = K*dir - K*rest
   var vel = get_velocity(p2) - get_velocity(p1)
-  var force = -K*disp - DAMPING*vel
-  p1.force += L.vec3f(-force)
+  var force = -disp - DAMPING*vel
+  --L.print(9999999, L.id(p1), rest, disp, vel, dir-rest)
+  --L.print(8888888, L.id(p1), -force)
+  --if(len == (2.0 * H_LEN)) then L.print(999999, vel, rest, disp) end
+  p1.force += L.vec3f(-1*force)
 end
 
 local ebb apply_spring_forces(p:particles)
@@ -203,17 +206,17 @@ local ebb apply_spring_forces(p:particles)
   if(row ~= N-1 and col ~= 0) then apply_spring_force(p, p.struct_d.struct_l, D_LEN) end
   if(row ~= N-1 and col ~= N-1) then apply_spring_force(p, p.struct_d.struct_r, D_LEN) end
 
-  if((col+2) < N) then apply_spring_force(p, p.struct_r.struct_r, 2*H_LEN) end
-  if((col-2) >= 0) then apply_spring_force(p, p.struct_l.struct_l, 2*H_LEN) end
-  if((row+2) < N) then apply_spring_force(p, p.struct_d.struct_d, 2*H_LEN) end
-  if((row-2) >= 0) then apply_spring_force(p, p.struct_u.struct_u, 2*H_LEN) end
+  if((col+2) < N) then apply_spring_force(p, p.struct_r.struct_r, 2.0*H_LEN) end
+  if((col-2) >= 0) then apply_spring_force(p, p.struct_l.struct_l, 2.0*H_LEN) end
+  if((row+2) < N) then apply_spring_force(p, p.struct_d.struct_d, 2.0*H_LEN) end
+  if((row-2) >= 0) then apply_spring_force(p, p.struct_u.struct_u, 2.0*H_LEN) end
 end
 
 local ebb apply_forces(p:particles)
   p.force = PARTICLE_MASS * GRAVITY
   apply_wind_forces(p)
   apply_spring_forces(p)
-  L.print(L.id(p), p.force)
+  --L.print(L.id(p), p.force)
 end
 
 local ebb update_pos(p:particles)
@@ -283,7 +286,7 @@ end
 
 -------------------------------------------------------------------------------
 
-for i=1,10 do
+for i=1,10000000 do
   particles:foreach(apply_forces)
   particles:foreach(update_pos)
   particles:foreach(satisfy_constraints)
@@ -293,6 +296,6 @@ for i=1,10 do
     particles:foreach(visualize_particles)
   vdb.vend()
 
-  print("iter", i)
+  --print("iter", i)
 
 end
