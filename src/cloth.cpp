@@ -526,7 +526,7 @@ void Cloth::satisfy_constraints()
     int num_springs = get_num_springs();
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
-        for(int i = num_springs - 1; i <= 0; i--)
+        for(int i = num_springs - 1; i >= 0; i--)
         {
             particle *p1 = springs[i].left;
             particle *p2 = springs[i].right;
@@ -550,7 +550,6 @@ void Cloth::satisfy_constraints()
         }
         reset_fixed_particles();
     }
-
     //        //std::cout<<diff_ratio<<std::endl;
     //        if(diff_ratio > DIFF_CRITICAL)
     //        {
