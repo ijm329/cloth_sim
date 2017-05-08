@@ -91,7 +91,7 @@ local ebb debug_connectivity(p:particles)
   var row = idx / N
   var col = idx % N
   L.print(idx)
-  --L.print(row, col, p.pos)
+  L.print(row, col, p.pos)
   L.print(L.id(p.struct_r))
   L.print(L.id(p.struct_d))
   L.print(L.id(p.struct_l))
@@ -180,7 +180,7 @@ local ebb get_velocity(p)
 end
 
 local ebb apply_spring_force(p1 : particles, p2 : particles, len)
-  var dir = p2.pos - p1.pos
+  var dir = L.vec3f(p2.pos - p1.pos)
   var rest = len * (dir / L.float(L.length(dir)))
   var disp = dir - rest
   var vel = get_velocity(p2) - get_velocity(p1)
@@ -192,12 +192,12 @@ local ebb apply_spring_forces(p:particles)
   var idx = L.id(p)
   var row = L.int(idx / N)
   var col = L.int(idx % N)
-
+  
   if(col ~= 0) then apply_spring_force(p, p.struct_l, H_LEN) end
   if(row ~= N-1) then apply_spring_force(p, p.struct_d, H_LEN) end
   if(col ~= N-1) then apply_spring_force(p, p.struct_r, H_LEN) end
   if(row ~= 0) then apply_spring_force(p, p.struct_u, H_LEN) end
-
+  
   if(row ~= 0 and col ~= 0) then apply_spring_force(p, p.struct_u.struct_l, D_LEN) end
   if(row ~= 0 and col ~= N-1) then apply_spring_force(p, p.struct_u.struct_r, D_LEN) end
   if(row ~= N-1 and col ~= 0) then apply_spring_force(p, p.struct_d.struct_l, D_LEN) end
@@ -206,7 +206,7 @@ local ebb apply_spring_forces(p:particles)
   if((col+2) < N) then apply_spring_force(p, p.struct_r.struct_r, 2*H_LEN) end
   if((col-2) >= 0) then apply_spring_force(p, p.struct_l.struct_l, 2*H_LEN) end
   if((row+2) < N) then apply_spring_force(p, p.struct_d.struct_d, 2*H_LEN) end
-  if((row-2) >= 0) then apply_spring_force(p, p.struct_u.struct_u, 2*H_LEN) end
+  if((row-2) >= 0) then apply_spring_force(p, p.struct_u.struct_u, 2*H_LEN) end 
 end
 
 local ebb apply_forces(p:particles)

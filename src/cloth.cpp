@@ -596,7 +596,7 @@ void Cloth::update_positions()
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
     {
-        std::cout<<i<<" " << particles[i].force << std::endl;
+        //std::cout<<i<<" " << particles[i].force << std::endl;
         vector3D temp(particles[i].pos);
         vector3D acc = particles[i].force/PARTICLE_MASS;
         particles[i].pos += (particles[i].pos - particles[i].prev_pos +
@@ -611,7 +611,7 @@ void Cloth::simulate_timestep()
     apply_forces();
     for(int i = 0; i < get_num_particles(); i++)
     {
-      std::cout << particles[i].normal << std::endl;
+      std::cout << particles[i].force << std::endl;
     }
     update_positions();
     reset_fixed_particles();
