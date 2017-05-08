@@ -3,7 +3,7 @@ local L = require 'ebblib'
 local vdb       = require 'ebb.lib.vdb'
 
 --particle initialization 
-local N = 3
+local N = 64
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
@@ -213,7 +213,7 @@ local ebb apply_forces(p:particles)
   p.force = PARTICLE_MASS * GRAVITY
   apply_wind_forces(p)
   apply_spring_forces(p)
-  L.print(L.id(p), p.force)
+  --L.print(L.id(p), p.force)
 end
 
 local ebb update_pos(p:particles)
@@ -282,8 +282,8 @@ local ebb visualize_particles ( p : particles )
 end
 
 -------------------------------------------------------------------------------
-
-for i=1,10 do
+local i = 0
+while true do
   particles:foreach(apply_forces)
   particles:foreach(update_pos)
   particles:foreach(satisfy_constraints)
@@ -292,7 +292,7 @@ for i=1,10 do
   vdb.frame()
     particles:foreach(visualize_particles)
   vdb.vend()
-
-  print("iter", i)
+  i = i + 1
+  --print("iter", i)
 
 end
