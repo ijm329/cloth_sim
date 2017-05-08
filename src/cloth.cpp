@@ -423,7 +423,7 @@ void Cloth::apply_forces()
     for(int i = 0; i < num_particles; i++)
         particles[i].force = PARTICLE_MASS * gravity;
 
-    //apply_spring_forces();
+    apply_spring_forces();
     apply_wind_forces();
 }
 
