@@ -256,6 +256,12 @@ void Cloth::init()
     //glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void Cloth::reset_normals()
+{
+    for(int i = 0; i < get_num_particles(); i++)
+        particles[i].normal = {0.0f, 0.0f, 0.0f};
+}
+
 void Cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
     //transform the cloth's position in the world space based on 
@@ -415,11 +421,9 @@ void Cloth::apply_forces()
 
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
-    {
         particles[i].force = PARTICLE_MASS * gravity;
-    }
 
-    apply_spring_forces();
+    //apply_spring_forces();
     apply_wind_forces();
 }
 
@@ -457,9 +461,9 @@ void Cloth::apply_wind_forces()
     //calculate vector normal to the points on the mesh to account for 
     //wind force. Make two triangles that form a square that travels around the 
     //mesh computing the wind forces
-    for(int i = 0; i < num_particles_width - 1; i++)
+    for(int j = 0; j < num_particles_height - 1; j++)
     {
-        for(int j = 0; j < num_particles_height - 1; j++)
+        for(int i = 0; i < num_particles_width - 1; i++)
         {
             int curr_idx = j * num_particles_width + i;
             int right_idx = curr_idx + 1;
@@ -471,15 +475,19 @@ void Cloth::apply_wind_forces()
             vector3D lower = particles[lower_idx].pos;
             vector3D diagonal = particles[diag_idx].pos;
 
+            //std::cout << "(" << j << "," << i << ")" << " = "<<curr_idx<<std::endl;
+            //std::cout << "r: "<<right_idx << " "<<right <<std::endl;
+            //std::cout << "d: "<<lower_idx << " " <<lower <<std::endl;
+
             // make two triangles to complete a square 
             vector3D wind(WIND_X, WIND_Y, WIND_Z);
             vector3D norm1 = get_normal_vec(right, curr, lower);
             vector3D norm2 = get_normal_vec(diagonal, right, lower);
 
             //add norm1 to particles
-            particles[right_idx].normal = norm1;
-            particles[curr_idx].normal = norm1;
-            particles[lower_idx].normal = norm1;
+            particles[right_idx].normal += norm1;
+            particles[curr_idx].normal += norm1;
+            particles[lower_idx].normal += norm1;
 
             //add norm2 to particles
             particles[diag_idx].normal += norm2;
@@ -489,14 +497,26 @@ void Cloth::apply_wind_forces()
             vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
             vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
             
+
+            //std::cout<<right_idx<<","<<curr_idx<<","<<lower_idx<<":"<<norm1<<" "<<wind_force1<<std::endl;
+
             //force 1
             particles[right_idx].force += wind_force1;
             particles[curr_idx].force += wind_force1;
             particles[lower_idx].force += wind_force1;
+
+            //if(curr_idx == 1 || right_idx == 1 || lower_idx == 1)
+            //    std::cout<<"adding " <<wind_force1<<" " << norm1<<std::endl;
+
             //force2
             particles[right_idx].force += wind_force2;
             particles[diag_idx].force += wind_force2;
             particles[lower_idx].force += wind_force2;
+
+            //std::cout<<right_idx<<","<<diag_idx<<","<<lower_idx<<":"<<norm2<<" "<<wind_force2<<std::endl;
+
+            //if(right_idx == 1 || diag_idx == 1 || lower_idx == 1)
+            //    std::cout<<"adding " <<wind_force2 << " " << norm2<<std::endl;
         }
     }
 }
@@ -576,6 +596,7 @@ void Cloth::update_positions()
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
     {
+        std::cout<<i<<" " << particles[i].force << std::endl;
         vector3D temp(particles[i].pos);
         vector3D acc = particles[i].force/PARTICLE_MASS;
         particles[i].pos += (particles[i].pos - particles[i].prev_pos +
@@ -586,11 +607,13 @@ void Cloth::update_positions()
 
 void Cloth::simulate_timestep()
 {
+    reset_normals();
     apply_forces();
     for(int i = 0; i < get_num_particles(); i++)
     {
       std::cout << particles[i].normal << std::endl;
     }
     update_positions();
-    satisfy_constraints();
+    reset_fixed_particles();
+    //satisfy_constraints();
 }
