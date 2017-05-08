@@ -12,7 +12,7 @@ local num_particles_height = N
 
 local particles = L.NewRelation {
   name = "particles",
-  size = num_particles_width * num_particles_height,
+  size = num_particles_width:get() * num_particles_height:get(),
 }
 
 --particle field initialization

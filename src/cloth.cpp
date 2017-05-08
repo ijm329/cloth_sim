@@ -256,6 +256,12 @@ void Cloth::init()
     //glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void Cloth::reset_normals()
+{
+    for(int i = 0; i < get_num_particles(); i++)
+        particles[i].normal = {0.0f, 0.0f, 0.0f};
+}
+
 void Cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
     //transform the cloth's position in the world space based on 
@@ -415,11 +421,9 @@ void Cloth::apply_forces()
 
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
-    {
         particles[i].force = PARTICLE_MASS * gravity;
-    }
 
-    apply_spring_forces();
+    //apply_spring_forces();
     apply_wind_forces();
 }
 
@@ -477,9 +481,9 @@ void Cloth::apply_wind_forces()
             vector3D norm2 = get_normal_vec(diagonal, right, lower);
 
             //add norm1 to particles
-            particles[right_idx].normal = norm1;
-            particles[curr_idx].normal = norm1;
-            particles[lower_idx].normal = norm1;
+            particles[right_idx].normal += norm1;
+            particles[curr_idx].normal += norm1;
+            particles[lower_idx].normal += norm1;
 
             //add norm2 to particles
             particles[diag_idx].normal += norm2;
@@ -576,6 +580,7 @@ void Cloth::update_positions()
     int num_particles = get_num_particles();
     for(int i = 0; i < num_particles; i++)
     {
+        //std::cout<<i<<" " << particles[i].force << std::endl;
         vector3D temp(particles[i].pos);
         vector3D acc = particles[i].force/PARTICLE_MASS;
         particles[i].pos += (particles[i].pos - particles[i].prev_pos +
@@ -586,7 +591,9 @@ void Cloth::update_positions()
 
 void Cloth::simulate_timestep()
 {
+    reset_normals();
     apply_forces();
     update_positions();
-    satisfy_constraints();
+    reset_fixed_particles();
+    //satisfy_constraints();
 }
