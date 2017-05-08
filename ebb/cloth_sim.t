@@ -3,7 +3,7 @@ local L = require 'ebblib'
 local vdb       = require 'ebb.lib.vdb'
 
 --particle initialization 
-local N = 3
+local N = 40
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
@@ -132,9 +132,7 @@ local ebb apply_wind_forces(p:particles)
     var lower = p.struct_d.pos
     norm = compute_normal(right, curr, lower)
     var wind_force = norm * L.dot(norm / L.length(norm), WIND)
-    --L.print(7, idx, norm, wind_force)
     force += wind_force
-    --if(row == 0 and col == 1) then L.print(wind_force, norm) end
   end
 
   if(row ~= N-1 and col ~= 0) then
@@ -143,8 +141,6 @@ local ebb apply_wind_forces(p:particles)
     norm = compute_normal(lower, curr, lower_left)
     var wind_force = norm * L.dot(norm / L.length(norm), WIND)
     force += wind_force
-    --L.print(8, idx, norm, wind_force)
-    --if(row == 0 and col == 1) then L.print(wind_force, norm) end
   end
 
   if(row ~= 0 and col ~= N-1) then
@@ -154,12 +150,10 @@ local ebb apply_wind_forces(p:particles)
     norm = compute_normal(upper_right, upper, curr)
     var wind_force = norm * L.dot(norm / L.length(norm), WIND)
     force += wind_force
-    --L.print(9, idx, norm, wind_force)
 
     norm = compute_normal(right, upper_right, curr)
     wind_force = norm * L.dot(norm / L.length(norm), WIND)
     force += wind_force
-    --L.print(10, idx, norm, wind_force)
   end
 
   if(row ~=0 and col ~= 0) then
@@ -168,7 +162,6 @@ local ebb apply_wind_forces(p:particles)
     norm = compute_normal(curr, upper, left)
     var wind_force = norm * L.dot(norm / L.length(norm), WIND)
     force += wind_force
-    --L.print(11, idx, norm, wind_force)
   end
 
   if(row ~= N-1 and col ~= 0) then
@@ -177,7 +170,6 @@ local ebb apply_wind_forces(p:particles)
     norm = compute_normal(curr, left, lower_left)
     var wind_force = norm * L.dot(norm / L.length(norm), WIND)
     force += wind_force
-    --L.print(12, idx, norm, wind_force)
   end
   p.force += L.vec3f(force)
 end
@@ -187,7 +179,7 @@ local ebb get_velocity(p)
   return L.vec3f(ret)
 end
 
-local ebb apply_spring_force(p1 : particles, p2 : particles, len : L.float)
+local ebb apply_spring_force(p1 : particles, p2 : particles, len)
   var dir = p2.pos - p1.pos
   var rest = len * (dir / L.float(L.length(dir)))
   var disp = dir - rest
@@ -220,12 +212,8 @@ end
 local ebb apply_forces(p:particles)
   p.force = PARTICLE_MASS * GRAVITY
   apply_wind_forces(p)
-
-  --spring
-  --apply_spring_forces(p)
-
-  L.print(L.id(p), p.force)
-
+  apply_spring_forces(p)
+  --L.print(L.id(p), p.force)
 end
 
 local ebb update_pos(p:particles)
@@ -235,7 +223,7 @@ local ebb update_pos(p:particles)
   p.prev_pos = temp
 end
 
-local ebb reset_fixed_particles(p)
+local ebb reset_fixed_particles(p:particles)
   var idx = L.id(p)
   var row = idx / N
   var col = idx % N
@@ -295,7 +283,7 @@ end
 
 -------------------------------------------------------------------------------
 
-for i=1,10 do
+for i=1,100000 do
   particles:foreach(apply_forces)
   particles:foreach(update_pos)
   particles:foreach(satisfy_constraints)
