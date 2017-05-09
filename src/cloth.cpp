@@ -423,7 +423,7 @@ void Cloth::apply_forces()
     for(int i = 0; i < num_particles; i++)
         particles[i].force = PARTICLE_MASS * gravity;
 
-    //apply_spring_forces();
+    apply_spring_forces();
     apply_wind_forces();
 }
 
@@ -527,10 +527,12 @@ void Cloth::reset_fixed_particles()
 
 void Cloth::satisfy_constraints()
 {
-    int num_springs = get_num_springs();
+    int num_shear = 2 * (num_particles_width - 1) * (num_particles_height - 1);
+    int num_structural = num_particles_height * (num_particles_width - 1) + 
+                         num_particles_width * (num_particles_height - 1);
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
-        for(int i = num_springs - 1; i >= 0; i--)
+        for(int i = 0; i < num_shear + num_structural; i++)
         {
             particle *p1 = springs[i].left;
             particle *p2 = springs[i].right;
@@ -593,6 +595,5 @@ void Cloth::simulate_timestep()
     reset_normals();
     apply_forces();
     update_positions();
-    reset_fixed_particles();
-    //satisfy_constraints();
+    satisfy_constraints();
 }
