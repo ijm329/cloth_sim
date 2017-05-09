@@ -74,10 +74,32 @@ void Cloth::init()
 
 __global__ void apply_all_forces()
 {
+
 }
 
 void CudaCloth::apply_forces()
 {
+  //setup invocaiton for application of all forces
+}
+
+__global__ void update_all_positions()
+{
+    int row = blockIdx.x * blockDim.x + threadId.x;
+    int col = blockIdx.y * blockDim.y + threadId.y;
+    if(row < num_particles_height && col < num_particles_width)
+    {
+        int i = row * num_particles_width + col;
+        vector3D temp(dev_particles[i].pos);
+        vector3D acc = particles[i].force/PARTICLE_MASS;
+        particles[i].pos += (particles[i].pos - particles[i].prev_pos +
+                             acc * TIME_STEP * TIME_STEP); 
+        particles[i].prev_pos = temp;
+    }
+}
+
+void CudaCloth::update_positions()
+{
+    //setup invocation for update positions
 
 }
 
