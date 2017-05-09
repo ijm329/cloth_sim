@@ -23,7 +23,7 @@ CudaCloth::CudaCloth(int n)
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
     params.dev_particles = dev_particles;
-    cudaError_t rc = cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants), 
+    rc = cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants), 
                                         0, cudaMemcpyHostToDevice);
     if(rc != cudaSuccess)
     {
@@ -34,8 +34,8 @@ CudaCloth::CudaCloth(int n)
 
 CudaCloth::CudaCloth(int w, int h)
 {
-    num_particles_width = n;
-    num_particles_height = n;
+    num_particles_width = w;
+    num_particles_height = h;
     particles = (particle *)malloc(sizeof(particle) * num_particles);
     if((particles == NULL))
     {
@@ -52,7 +52,7 @@ CudaCloth::CudaCloth(int w, int h)
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
     params.dev_particles = dev_particles;
-    cudaError_t rc = cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants), 
+    rc = cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants), 
                                         0, cudaMemcpyHostToDevice);
     if(rc != cudaSuccess)
     {
@@ -80,7 +80,7 @@ void CudaCloth::get_particles()
 
 // initializes cloth positions and allocates memory region in the device and 
 // copies the particle buffer into that region
-void Cloth::init()
+void CudaCloth::init()
 {
     for(int i = 0; i < num_particles_height; i++)
     {
@@ -94,19 +94,7 @@ void Cloth::init()
 
             particles[i*num_particles_width + j].pos = {x, 1.0f, z};
             particles[i*num_particles_width + j].prev_pos = {x, 1.0f, z};
-
-            //give the border particles a different color
-            bool fixed;
-            fixed = false;
-
-            if(i == 0)
-            {
-                if((j == 0) || (j == num_particles_height - 1))
-                    fixed = true;
-            }
-            particles[i*num_particles_width + j].fixed = fixed;
             particles[i*num_particles_width + j].force = {0.0f, 0.0f, 0.0f};
-            particles[i*num_particles_width + j].normal = {0.0f, 0.0f, 0.0f};
         }
     }
     //copy initialized data to device
@@ -122,8 +110,8 @@ void Cloth::init()
 __device__ void load_particles(particle **blk_particles)
 {
     //row in col within the entire grid of threads
-    int row = blockIdx.x * blockDim.x + threadId.x;
-    int col = blockIdx.y * blockDim.y + threadId.y;
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    int col = blockIdx.y * blockDim.y + threadIdx.y;
     int dev_num_particles_width = cuConstRendererParams.num_particles_width;
     int dev_num_particles_height = cuConstRendererParams.num_particles_height;
     //create a 2D array of shared memory for particles that will be used by 
@@ -138,64 +126,64 @@ __device__ void load_particles(particle **blk_particles)
     blk_particles[row + 1][col + 1] = dev_particles[idx];
     //for border particles, load the immediate top, left, bottom, and right
     //load tops so only if you're in the top row of your block
-    if(threadId.y == 0)
+    if(threadIdx.y == 0)
     {
         //ensure you're not the top row in the system
         if(row != 0)
         {
             int top = (row - 1) * dev_num_particles_width + col;
-            blk_particles[0][thread.x + 1] = dev_particles[top];
+            blk_particles[0][threadIdx.x + 1] = dev_particles[top];
         }
         else
         {
-            blk_particles[0][thread.x + 1] = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[0][threadIdx.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //bottom particles
-    else if(thread.y == blockDim.y - 1)
+    else if(threadIdx.y == blockDim.y - 1)
     {
         //not the bottom row in the system
         if(row != dev_num_particles_height - 1)
         {
             int btm = (row + 1) * dev_num_particles_width + col;
-            blk_particles[thread.y + 2][thread.x + 1].pos = dev_particles[btm];
+            blk_particles[threadIdx.y + 2][threadIdx.x + 1] = dev_particles[btm];
         }
         else
         {
-            blk_particles[thread.y + 2][thread.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[threadIdx.y + 2][threadIdx.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //left
-    if(thread.x == 0)
+    if(threadIdx.x == 0)
     {
         //if you're not the left edge in the system 
         if(col != 0)
         {
             int left = idx - 1;
-            blk_particles[threadId.y + 1][0] = dev_particles[left];
+            blk_particles[threadIdx.y + 1][0] = dev_particles[left];
         }
         else
         {
-            blk_particles[threadId.y + 1][0] = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[threadIdx.y + 1][0].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //right 
-    else if(thread.x == blockDim.x - 1)
+    else if(threadIdx.x == blockDim.x - 1)
     {
         //if you're not the right edge in the system
         if(col != dev_num_particles_width - 1)
         {
             int right = idx + 1;
-            blk_particles[threadId.y + 1][thread.x + 2] = dev_particles[right];
+            blk_particles[threadIdx.y + 1][threadIdx.x + 2] = dev_particles[right];
         }
         else
         {
-            blk_particles[threadId.y + 1][thread.x + 2] = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[threadIdx.y + 1][threadIdx.x + 2].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //corners 
     //top left
-    if(thread.x == 0 && thread.y == 0)
+    if(threadIdx.x == 0 && threadIdx.y == 0)
     {
         //if not at the top of the system and not at the top left edge
         if(row != 0 && col != 0)
@@ -205,11 +193,11 @@ __device__ void load_particles(particle **blk_particles)
         }
         else
         {
-            blk_particles[0][0] = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[0][0].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //top right
-    else if(thread.x == blockDim.x - 1 && thread.y == 0)
+    else if(threadIdx.x == blockDim.x - 1 && threadIdx.y == 0)
     {
         if(row != 0 && col != dev_num_particles_width - 1)
         {
@@ -218,11 +206,11 @@ __device__ void load_particles(particle **blk_particles)
         }
         else
         {
-            blk_particles[0][shared_mem_x - 1] = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[0][shared_mem_x - 1].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //bottom left
-    else if(thread.x == 0 && thread.y == blockDim.y - 1)
+    else if(threadIdx.x == 0 && threadIdx.y == blockDim.y - 1)
     {
         if(row != dev_num_particles_height - 1 && col != 0)
         {
@@ -231,11 +219,11 @@ __device__ void load_particles(particle **blk_particles)
         }
         else
         {
-            blk_particles[shared_mem_y - 1][0] = vector3D(-2.0, -2.0, -2.0);
+            blk_particles[shared_mem_y - 1][0].pos = vector3D(-2.0, -2.0, -2.0);
         }
     }
     //bottom right 
-    else if(thread.x == blockDim.x - 1 && thread.y == blockDim.y - 1)
+    else if(threadIdx.x == blockDim.x - 1 && threadIdx.y == blockDim.y - 1)
     {
         if(row != dev_num_particles_height - 1 && col != dev_num_particles_width - 1)
         {
@@ -248,20 +236,20 @@ __device__ void load_particles(particle **blk_particles)
 __global__ void apply_all_forces()
 {
     //row in col within the entire grid of threads
-    int row = blockIdx.x * blockDim.x + threadId.x;
-    int col = blockIdx.y * blockDim.y + threadId.y;
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    int col = blockIdx.y * blockDim.y + threadIdx.y;
     int dev_num_particles_width = cuConstRendererParams.num_particles_width;
     int dev_num_particles_height = cuConstRendererParams.num_particles_height;
     //create a 2D array of shared memory for particles that will be used by 
     //block
-    int shared_mem_x = blockDim.x + 2;
+    int shared_mem_x =  blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
     particle *dev_particles = cuConstRendererParams.dev_particles;
-    vector3D force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f)
-    __shared__ particle blk_particles[shared_mem_y][shared_mem_x];
+    vector3D force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
+    __shared__ particle blk_particles[TPB_Y + 2][TPB_X + 2];
     if(row < dev_num_particles_height && col < dev_num_particles_width)
     {
-        load_particles(blk_particles);
+        load_particles((particle **)blk_particles);
     }
     __syncthreads();
 }
@@ -273,19 +261,20 @@ void CudaCloth::apply_forces()
 
 __global__ void update_all_positions()
 {
-    int row = blockIdx.x * blockDim.x + threadId.x;
-    int col = blockIdx.y * blockDim.y + threadId.y;
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    int col = blockIdx.y * blockDim.y + threadIdx.y;
     int dev_num_particles_width = cuConstRendererParams.num_particles_width;
     int dev_num_particles_height = cuConstRendererParams.num_particles_height;
-    particle *dev_particles = cuConstRendererParams.dev_particles;
     if(row < dev_num_particles_height && col < dev_num_particles_width)
     {
         int i = row * dev_num_particles_width + col;
-        vector3D temp(dev_particles[i].pos);
-        vector3D acc = particles[i].force/PARTICLE_MASS;
-        particles[i].pos += (particles[i].pos - particles[i].prev_pos +
+        particle curr = cuConstRendererParams.dev_particles[i];
+        vector3D temp(curr.pos);
+        vector3D acc = curr.force/PARTICLE_MASS;
+        curr.pos += (curr.pos - curr.prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
-        particles[i].prev_pos = temp;
+        curr.prev_pos = temp;
+        cuConstRendererParams.dev_particles[i] = curr;
     }
 }
 
@@ -299,6 +288,6 @@ void CudaCloth::simulate_timestep()
 {
     apply_forces();
     update_positions();
-    satisfy_constraints();
+    //satisfy_constraints();
 }
 

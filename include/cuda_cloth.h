@@ -13,7 +13,7 @@
 #else
 #include <GL/glut.h>
 #endif
-#include "vector3D.h"
+#include "cuda_vector3D.h"
 
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
@@ -66,6 +66,11 @@
 #define ASSERT(cond)
 #endif
 
+//cuda constants 
+#define TPB_X 3
+#define TPB_Y 3
+#define TPB (TPB_X * TPB_Y) 
+
 typedef enum
 {
     STRUCTURAL,
@@ -78,8 +83,6 @@ typedef struct particle
     vector3D pos;
     vector3D prev_pos;
     vector3D force;
-    vector3D normal;
-    bool fixed;
 } particle;
 
 typedef struct GlobalConstants
