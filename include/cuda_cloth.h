@@ -15,6 +15,19 @@
 #endif
 #include "vector3D.h"
 
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+
+// Utilities and timing functions
+#include <helper_functions.h>    // includes cuda.h and cuda_runtime_api.h
+#include <timer.h>               // timing functions
+
+// CUDA helper functions
+#include <helper_cuda.h>         // helper functions for CUDA error check
+#include <helper_cuda_gl.h>      // helper functions for CUDA/GL interop
+
+#include <vector_types.h>
+
 //Simulation Constants
 #define TIME_STEP 0.00314 //in seconds
 #define NUM_CONSTRAINT_ITERS 300
@@ -52,6 +65,13 @@
 #else
 #define ASSERT(cond)
 #endif
+
+typedef struct GlobalConstants
+{
+    int num_particles_width;
+    int num_particles_height;
+    particle *dev_particles;
+} GlobalConstants;
 
 typedef enum
 {
