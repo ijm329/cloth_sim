@@ -94,6 +94,7 @@ class CudaCloth
     private:
         int num_particles_width;
         int num_particles_height;
+        int num_particles;
         particle *particles;
         particle *dev_particles;
 

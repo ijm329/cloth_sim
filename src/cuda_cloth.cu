@@ -6,6 +6,7 @@ CudaCloth::CudaCloth(int n)
 {
     num_particles_width = n;
     num_particles_height = n;
+    num_particles = num_particles_width * num_particles_height;
     particles = (particle *)malloc(sizeof(particle) * num_particles);
     if((particles == NULL))
     {
@@ -57,6 +58,23 @@ CudaCloth::CudaCloth(int w, int h)
     {
         std::cout << "GPU Symbol Transfer Failure" << std::endl;
         exit(1);
+    }
+}
+
+CudaCloth::~CudaCloth()
+{
+    free(particles);
+    cudaFree(dev_particles);
+}
+
+// Get particles back from the device for rendering 
+void CudaCloth::get_particles()
+{
+    cudaError_t rc = cudaMemcpy(particles, dev_particles, sizeof(particle) * num_particles, 
+                                cudaMemcpyDeviceToHost);
+    if(rc != cudaSuccess)
+    {
+        std::cout << "GPU Transfer to host failed" << std::endl;
     }
 }
 
