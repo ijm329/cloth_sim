@@ -81,119 +81,116 @@ __device__ void load_particles(particle **blk_particles)
     //block
     int shared_mem_x = blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    if(row < num_particles_height && col < num_particles_width)
+    vector3D tot_force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
+    //cooperatively load into the array the necessary particles starting 
+    //with those contained in the thread block.
+    int idx = row * num_particles_width + col;
+    blk_particles[row + 1][col + 1] = dev_particles[idx];
+    //for border particles, load the immediate top, left, bottom, and right
+    //load tops so only if you're in the top row of your block
+    if(threadId.y == 0)
     {
-        vector3D tot_force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
-        //cooperatively load into the array the necessary particles starting 
-        //with those contained in the thread block.
-        int idx = row * num_particles_width + col;
-        blk_particles[row + 1][col + 1] = dev_particles[idx];
-        //for border particles, load the immediate top, left, bottom, and right
-        //load tops so only if you're in the top row of your block
-        if(threadId.y == 0)
+        //ensure you're not the top row in the system
+        if(row != 0)
         {
-            //ensure you're not the top row in the system
-            if(row != 0)
-            {
-                int top = (row - 1) * num_particles_width + col;
-                blk_particles[0][thread.x + 1] = dev_particles[top];
-            }
-            else
-            {
-                blk_particles[0][thread.x + 1] = vector3D(-2.0, -2.0, -2.0);
-            }
+            int top = (row - 1) * num_particles_width + col;
+            blk_particles[0][thread.x + 1] = dev_particles[top];
         }
-        //bottom particles
-        else if(thread.y == blockDim.y - 1)
+        else
         {
-            //not the bottom row in the system
-            if(row != num_particles_height - 1)
-            {
-                int btm = (row + 1) * num_particles_width + col;
-                blk_particles[thread.y + 2][thread.x + 1].pos = dev_particles[btm];
-            }
-            else
-            {
-                blk_particles[thread.y + 2][thread.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
-            }
+            blk_particles[0][thread.x + 1] = vector3D(-2.0, -2.0, -2.0);
         }
-        //left
-        if(thread.x == 0)
+    }
+    //bottom particles
+    else if(thread.y == blockDim.y - 1)
+    {
+        //not the bottom row in the system
+        if(row != num_particles_height - 1)
         {
-            //if you're not the left edge in the system 
-            if(col != 0)
-            {
-                int left = idx - 1;
-                blk_particles[threadId.y + 1][0] = dev_particles[left];
-            }
-            else
-            {
-                blk_particles[threadId.y + 1][0] = vector3D(-2.0, -2.0, -2.0);
-            }
+            int btm = (row + 1) * num_particles_width + col;
+            blk_particles[thread.y + 2][thread.x + 1].pos = dev_particles[btm];
         }
-        //right 
-        else if(thread.x == blockDim.x - 1)
+        else
         {
-            //if you're not the right edge in the system
-            if(col != num_particles_width - 1)
-            {
-                int right = idx + 1;
-                blk_particles[threadId.y + 1][thread.x + 2] = dev_particles[right];
-            }
-            else
-            {
-                blk_particles[threadId.y + 1][thread.x + 2] = vector3D(-2.0, -2.0, -2.0);
-            }
+            blk_particles[thread.y + 2][thread.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
         }
-        //corners 
-        //top left
-        if(thread.x == 0 && thread.y == 0)
+    }
+    //left
+    if(thread.x == 0)
+    {
+        //if you're not the left edge in the system 
+        if(col != 0)
         {
-            //if not at the top of the system and not at the top left edge
-            if(row != 0 && col != 0)
-            {
-                int top_left = (row - 1) * num_particles_width + (col - 1);
-                blk_particles[0][0] = dev_particles[top_left];
-            }
-            else
-            {
-                blk_particles[0][0] = vector3D(-2.0, -2.0, -2.0);
-            }
+            int left = idx - 1;
+            blk_particles[threadId.y + 1][0] = dev_particles[left];
         }
-        //top right
-        else if(thread.x == blockDim.x - 1 && thread.y == 0)
+        else
         {
-            if(row != 0 && col != num_particles_width - 1)
-            {
-                int top_right = (row - 1) * num_particles_width + (col + 1);
-                blk_particles[0][shared_mem_x - 1] = dev_particles[top_right];
-            }
-            else
-            {
-                blk_particles[0][shared_mem_x - 1] = vector3D(-2.0, -2.0, -2.0);
-            }
+            blk_particles[threadId.y + 1][0] = vector3D(-2.0, -2.0, -2.0);
         }
-        //bottom left
-        else if(thread.x == 0 && thread.y == blockDim.y - 1)
+    }
+    //right 
+    else if(thread.x == blockDim.x - 1)
+    {
+        //if you're not the right edge in the system
+        if(col != num_particles_width - 1)
         {
-            if(row != num_particles_height - 1 && col != 0)
-            {
-                int btm_left = (row + 1) * num_particles_width + col - 1;
-                blk_particles[shared_mem_y - 1][0] = dev_particles[btm_left];
-            }
-            else
-            {
-                blk_particles[shared_mem_y - 1][0] = vector3D(-2.0, -2.0, -2.0);
-            }
+            int right = idx + 1;
+            blk_particles[threadId.y + 1][thread.x + 2] = dev_particles[right];
         }
-        //bottom right 
-        else if(thread.x == blockDim.x - 1 && thread.y == blockDim.y - 1)
+        else
         {
-            if(row != num_particles_height - 1 && col != num_particles_width - 1)
-            {
-                int btm_right = (row + 1) * num_particles_width + col + 1;
-                blk_particles[shared_mem_y - 1][shared_mem_x - 1] = dev_particles[btm_right];
-            }
+            blk_particles[threadId.y + 1][thread.x + 2] = vector3D(-2.0, -2.0, -2.0);
+        }
+    }
+    //corners 
+    //top left
+    if(thread.x == 0 && thread.y == 0)
+    {
+        //if not at the top of the system and not at the top left edge
+        if(row != 0 && col != 0)
+        {
+            int top_left = (row - 1) * num_particles_width + (col - 1);
+            blk_particles[0][0] = dev_particles[top_left];
+        }
+        else
+        {
+            blk_particles[0][0] = vector3D(-2.0, -2.0, -2.0);
+        }
+    }
+    //top right
+    else if(thread.x == blockDim.x - 1 && thread.y == 0)
+    {
+        if(row != 0 && col != num_particles_width - 1)
+        {
+            int top_right = (row - 1) * num_particles_width + (col + 1);
+            blk_particles[0][shared_mem_x - 1] = dev_particles[top_right];
+        }
+        else
+        {
+            blk_particles[0][shared_mem_x - 1] = vector3D(-2.0, -2.0, -2.0);
+        }
+    }
+    //bottom left
+    else if(thread.x == 0 && thread.y == blockDim.y - 1)
+    {
+        if(row != num_particles_height - 1 && col != 0)
+        {
+            int btm_left = (row + 1) * num_particles_width + col - 1;
+            blk_particles[shared_mem_y - 1][0] = dev_particles[btm_left];
+        }
+        else
+        {
+            blk_particles[shared_mem_y - 1][0] = vector3D(-2.0, -2.0, -2.0);
+        }
+    }
+    //bottom right 
+    else if(thread.x == blockDim.x - 1 && thread.y == blockDim.y - 1)
+    {
+        if(row != num_particles_height - 1 && col != num_particles_width - 1)
+        {
+            int btm_right = (row + 1) * num_particles_width + col + 1;
+            blk_particles[shared_mem_y - 1][shared_mem_x - 1] = dev_particles[btm_right];
         }
     }
 }
@@ -207,8 +204,12 @@ __global__ void apply_all_forces()
     //block
     int shared_mem_x = blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
+    vector3D force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f)
     __shared__ particle blk_particles[shared_mem_y][shared_mem_x];
-    load_particles(blk_particles);
+    if(row < num_particles_height && col < num_particles_width)
+    {
+        load_particles(blk_particles);
+    }
     __syncthreads();
 }
 
