@@ -1,6 +1,6 @@
 #include "cuda_cloth.h"
 
-__constant__ GlobalConstants cuConstRendererParams;
+__constant__ GlobalConstants cuConstClothParams;
 
 CudaCloth::CudaCloth(int n)
 {
@@ -13,23 +13,12 @@ CudaCloth::CudaCloth(int n)
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
     }
-    cudaError_t rc = cudaMalloc(&dev_particles, sizeof(particle) * num_particles);
-    if(rc != cudaSuccess)
-    {
-        std::cout << "GPU Allocation Failure" << std::endl;
-        exit(1);
-    }
+    GPU_ERR_CHK(cudaMalloc(&dev_particles, sizeof(particle) * num_particles));
     GlobalConstants params; 
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
     params.dev_particles = dev_particles;
-    rc = cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants), 
-                                        0, cudaMemcpyHostToDevice);
-    if(rc != cudaSuccess)
-    {
-        std::cout << "GPU Symbol Transfer Failure" << std::endl;
-        exit(1);
-    }
+    GPU_ERR_CHK(cudaMemcpyToSymbol(cuConstClothParams, &params, sizeof(GlobalConstants), 0, cudaMemcpyHostToDevice));
 }
 
 CudaCloth::CudaCloth(int w, int h)
@@ -42,23 +31,12 @@ CudaCloth::CudaCloth(int w, int h)
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
     }
-    cudaError_t rc = cudaMalloc(&dev_particles, sizeof(particle) * num_particles);
-    if (rc != cudaSuccess)
-    {
-        std::cout << "GPU Allocation Failure" << std::endl;
-        exit(1);
-    }
+    GPU_ERR_CHK(cudaMalloc(&dev_particles, sizeof(particle) * num_particles));
     GlobalConstants params;
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
     params.dev_particles = dev_particles;
-    rc = cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants), 
-                                        0, cudaMemcpyHostToDevice);
-    if(rc != cudaSuccess)
-    {
-        std::cout << "GPU Symbol Transfer Failure" << std::endl;
-        exit(1);
-    }
+    GPU_ERR_CHK(cudaMemcpyToSymbol(cuConstClothParams, &params, sizeof(GlobalConstants), 0, cudaMemcpyHostToDevice));
 }
 
 CudaCloth::~CudaCloth()
@@ -70,12 +48,8 @@ CudaCloth::~CudaCloth()
 // Get particles back from the device for rendering 
 void CudaCloth::get_particles()
 {
-    cudaError_t rc = cudaMemcpy(particles, dev_particles, sizeof(particle) * num_particles, 
-                                cudaMemcpyDeviceToHost);
-    if(rc != cudaSuccess)
-    {
-        std::cout << "GPU Transfer to host failed" << std::endl;
-    }
+    GPU_ERR_CHK(cudaMemcpy(particles, dev_particles, sizeof(particle) * num_particles, 
+                                cudaMemcpyDeviceToHost));
 }
 
 // initializes cloth positions and allocates memory region in the device and 
@@ -98,13 +72,8 @@ void CudaCloth::init()
         }
     }
     //copy initialized data to device
-    cudaError_t rc = cudaMemcpy(dev_particles, particles, sizeof(particle) * num_particles, 
-                                cudaMemcpyHostToDevice);
-    if(rc != cudaSuccess)
-    {
-        std::cout << "GPU Transfer Failure" << std::endl;
-        exit(1);
-    }
+    GPU_ERR_CHK(cudaMemcpy(dev_particles, particles, sizeof(particle) * num_particles, 
+                                cudaMemcpyHostToDevice));
 }
 
 __device__ void load_particles(particle **blk_particles)
@@ -112,13 +81,13 @@ __device__ void load_particles(particle **blk_particles)
     //row in col within the entire grid of threads
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
-    int dev_num_particles_width = cuConstRendererParams.num_particles_width;
-    int dev_num_particles_height = cuConstRendererParams.num_particles_height;
+    int dev_num_particles_width = cuConstClothParams.num_particles_width;
+    int dev_num_particles_height = cuConstClothParams.num_particles_height;
     //create a 2D array of shared memory for particles that will be used by 
     //block
     int shared_mem_x = blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    particle *dev_particles = cuConstRendererParams.dev_particles;
+    particle *dev_particles = cuConstClothParams.dev_particles;
     vector3D tot_force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     //cooperatively load into the array the necessary particles starting 
     //with those contained in the thread block.
@@ -238,13 +207,13 @@ __global__ void apply_all_forces()
     //row in col within the entire grid of threads
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
-    int dev_num_particles_width = cuConstRendererParams.num_particles_width;
-    int dev_num_particles_height = cuConstRendererParams.num_particles_height;
+    int dev_num_particles_width = cuConstClothParams.num_particles_width;
+    int dev_num_particles_height = cuConstClothParams.num_particles_height;
     //create a 2D array of shared memory for particles that will be used by 
     //block
     int shared_mem_x =  blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    particle *dev_particles = cuConstRendererParams.dev_particles;
+    particle *dev_particles = cuConstClothParams.dev_particles;
     vector3D force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     __shared__ particle blk_particles[TPB_Y + 2][TPB_X + 2];
     if(row < dev_num_particles_height && col < dev_num_particles_width)
@@ -256,6 +225,7 @@ __global__ void apply_all_forces()
 
 void CudaCloth::apply_forces()
 {
+  printf("Hi good morning\n");
   //setup invocaiton for application of all forces
 }
 
@@ -263,23 +233,24 @@ __global__ void update_all_positions()
 {
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
-    int dev_num_particles_width = cuConstRendererParams.num_particles_width;
-    int dev_num_particles_height = cuConstRendererParams.num_particles_height;
+    int dev_num_particles_width = cuConstClothParams.num_particles_width;
+    int dev_num_particles_height = cuConstClothParams.num_particles_height;
     if(row < dev_num_particles_height && col < dev_num_particles_width)
     {
         int i = row * dev_num_particles_width + col;
-        particle curr = cuConstRendererParams.dev_particles[i];
+        particle curr = cuConstClothParams.dev_particles[i];
         vector3D temp(curr.pos);
         vector3D acc = curr.force/PARTICLE_MASS;
         curr.pos += (curr.pos - curr.prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
         curr.prev_pos = temp;
-        cuConstRendererParams.dev_particles[i] = curr;
+        cuConstClothParams.dev_particles[i] = curr;
     }
 }
 
 void CudaCloth::update_positions()
 {
+    printf("Yes hello\n");
     //setup invocation for update positions
 
 }

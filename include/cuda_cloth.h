@@ -71,6 +71,17 @@
 #define TPB_Y 3
 #define TPB (TPB_X * TPB_Y) 
 
+//error checking 
+#define GPU_ERR_CHK(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 typedef enum
 {
     STRUCTURAL,
@@ -91,7 +102,6 @@ typedef struct GlobalConstants
     int num_particles_height;
     particle *dev_particles;
 } GlobalConstants;
-
 
 class CudaCloth
 {
