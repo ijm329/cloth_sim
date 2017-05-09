@@ -2,7 +2,7 @@
 
 std::ostream& operator<<(std::ostream& os, const vector3D &v)
 {
-    os << v.x << " " << v.y << " " << v.z << " ";
+    os << "[ " << v.x << " " << v.y << " " << v.z << " ] ";
     return os;
 }
 

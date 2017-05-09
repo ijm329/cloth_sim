@@ -7,8 +7,8 @@ local N = 64
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
-local H_LEN = BOUND_LENGTH/N
-local D_LEN = H_LEN * L.sqrt(2)
+local H_LEN_LUA = BOUND_LENGTH/N
+local D_LEN_LUA = H_LEN_LUA * math.sqrt(2)
 local num_particles_width = N
 local num_particles_height = N
 
@@ -21,8 +21,8 @@ local STRETCH_CRITICAL = L.Constant(L.float, 1.1)
 local TIME_STEP = L.Constant(L.float, 0.00314)
 local NUM_CONSTRAINT_ITERS = L.Constant(L.int, 300)
 local PARTICLE_MASS = L.Constant(L.float, 0.01)
-local H_LEN = L.Constant(L.float, H_LEN)
-local D_LEN = L.Constant(L.float, D_LEN)
+local H_LEN = L.Constant(L.float, H_LEN_LUA)
+local D_LEN = L.Constant(L.float, D_LEN_LUA)
 
 local particles = L.NewRelation {
   name = "particles",
@@ -33,6 +33,7 @@ local particles = L.NewRelation {
 particles:NewField('pos', L.vec3f)
 particles:NewField('prev_pos', L.vec3f)
 particles:NewField('force', L.vec3f):Load({0,0,0})
+particles:NewField('new_pos', L.vec3f):Load({0,0,0})
 
 --particle connectivity initialization
 particles:NewField('struct_r', particles)
@@ -175,17 +176,20 @@ local ebb apply_wind_forces(p:particles)
 end
 
 local ebb get_velocity(p)
-  var ret = (p.pos - p.prev_pos) / TIME_STEP
+  var ret = (p.pos - p.prev_pos) * (1.0 / TIME_STEP)
   return L.vec3f(ret)
 end
 
 local ebb apply_spring_force(p1 : particles, p2 : particles, len)
   var dir = L.vec3f(p2.pos - p1.pos)
   var rest = len * (dir / L.float(L.length(dir)))
-  var disp = dir - rest
+  var disp = K*dir - K*rest
   var vel = get_velocity(p2) - get_velocity(p1)
-  var force = -K*disp - DAMPING*vel
-  p1.force += L.vec3f(-force)
+  var force = -disp - DAMPING*vel
+  --L.print(9999999, L.id(p1), rest, disp, vel, dir-rest)
+  --L.print(8888888, L.id(p1), -force)
+  --if(len == (2.0 * H_LEN)) then L.print(999999, vel, rest, disp) end
+  p1.force += L.vec3f(-1*force)
 end
 
 local ebb apply_spring_forces(p:particles)
@@ -203,10 +207,10 @@ local ebb apply_spring_forces(p:particles)
   if(row ~= N-1 and col ~= 0) then apply_spring_force(p, p.struct_d.struct_l, D_LEN) end
   if(row ~= N-1 and col ~= N-1) then apply_spring_force(p, p.struct_d.struct_r, D_LEN) end
 
-  if((col+2) < N) then apply_spring_force(p, p.struct_r.struct_r, 2*H_LEN) end
-  if((col-2) >= 0) then apply_spring_force(p, p.struct_l.struct_l, 2*H_LEN) end
-  if((row+2) < N) then apply_spring_force(p, p.struct_d.struct_d, 2*H_LEN) end
-  if((row-2) >= 0) then apply_spring_force(p, p.struct_u.struct_u, 2*H_LEN) end 
+  if((col+2) < N) then apply_spring_force(p, p.struct_r.struct_r, 2.0*H_LEN) end
+  if((col-2) >= 0) then apply_spring_force(p, p.struct_l.struct_l, 2.0*H_LEN) end
+  if((row+2) < N) then apply_spring_force(p, p.struct_d.struct_d, 2.0*H_LEN) end
+  if((row-2) >= 0) then apply_spring_force(p, p.struct_u.struct_u, 2.0*H_LEN) end
 end
 
 local ebb apply_forces(p:particles)
@@ -238,7 +242,207 @@ end
 
 local ebb satisfy_constraints(p:particles)
   reset_fixed_particles(p)
+  L.print(L.id(p), p.pos)
 end
+
+local ebb satisfy_constraint(p1 : particles, p2 : particles)
+  var diff = p2.pos - p1.pos
+  var idx = L.id(p1)
+  var row = idx / N 
+  var col = idx % N
+  var new_length = L.length(diff)
+  if(new_length > STRETCH_CRITICAL * H_LEN) then 
+    var move_dist = (new_length - (STRETCH_CRITICAL * H_LEN)) / 2.0
+    if((row ~= 0 and col ~= 0 and col ~= N - 1)) then 
+      p1.new_pos = p1.pos + L.vec3f(move_dist * diff/L.float(L.length(diff)))
+    end 
+  end
+end
+
+local ebb satisfy_constraint_diag(p1 : particles, p2 : particles)
+  var diff = p2.pos - p1.pos
+  var idx = L.id(p1)
+  var row = idx / N 
+  var col = idx % N
+  var new_length = L.length(diff)
+  if(new_length > STRETCH_CRITICAL * D_LEN) then 
+    var move_dist = (new_length - (STRETCH_CRITICAL * D_LEN)) / 2.0
+    if((row ~= 0 and col ~= 0 and col ~= N - 1)) then 
+      p1.new_pos = p1.pos + L.vec3f(move_dist * diff/L.float(L.length(diff)))
+    end 
+  end
+end
+
+local ebb satisfy_horizontal_even(p : particles)
+  var idx = L.id(p)
+  var col = idx % N
+  p.new_pos = p.pos
+  if(col % 2 == 0 and col ~= N - 1) then 
+    var neighbor = p.struct_r 
+    satisfy_constraint(p, neighbor)
+  elseif(col % 2 ~= 0) then 
+    var neighbor = p.struct_l
+    satisfy_constraint(p, neighbor)
+  end 
+end 
+
+local ebb satisfy_horizontal_odd(p : particles)
+  var idx = L.id(p)
+  var col = idx % N
+  p.new_pos = p.pos
+  if(col % 2 ~= 0 and col ~= N - 1) then 
+    var neighbor = p.struct_r 
+    satisfy_constraint(p, neighbor)
+  elseif(col % 2 == 0 and col ~= 0) then 
+    var neighbor = p.struct_l
+    satisfy_constraint(p, neighbor)
+  end 
+end 
+
+local ebb satisfy_vertical_even(p : particles)
+  p.new_pos = p.pos
+  var idx = L.id(p)
+  var row = idx / N
+  if(row  % 2 == 0 and row ~= N - 1) then 
+    var neighbor = p.struct_d
+    satisfy_constraint(p, neighbor)
+  end 
+  if(row % 2 ~= 0) then 
+    var neighbor = p.struct_u
+    satisfy_constraint(p, neighbor)
+  end 
+end 
+
+local ebb satisfy_vertical_odd(p : particles)
+  var idx = L.id(p)
+  var row = idx / N
+  p.new_pos = p.pos
+  if(row  % 2 ~= 0 and row ~= N - 1) then 
+    var neighbor = p.struct_d
+    satisfy_constraint(p, neighbor)
+  end 
+  if(row % 2 == 0 and row ~= 0) then 
+    var neighbor = p.struct_u 
+    satisfy_constraint(p, neighbor)
+  end 
+end 
+
+--satisfies diagonals beginning on even rows and even columns
+local ebb satisfy_diagonal_erec(p : particles)
+  var idx = L.id(p)
+  var row = idx / N 
+  var col = idx % N 
+  p.new_pos = p.pos
+  --look down left or down right.
+  if(row % 2 == 0 and row ~= N - 1) then 
+    if(col % 2 == 0 and col ~= N - 1) then 
+      var neighbor = p.struct_d.struct_r
+      satisfy_constraint_diag(p, neighbor)
+      --L.print(idx)
+    elseif(col % 2 ~= 0) then 
+      var neighbor = p.struct_d.struct_l
+      satisfy_constraint_diag(p, neighbor)
+      --L.print(idx)
+    end 
+  end 
+  --look up left or up right 
+  if(row % 2 ~= 0 and row ~= 0) then 
+    if(col % 2 == 0 and col ~= N - 1) then 
+      var neighbor = p.struct_u.struct_r
+      satisfy_constraint_diag(p, neighbor)
+      --L.print(idx)
+    elseif(col % 2 ~= 0) then 
+      var neighbor = p.struct_u.struct_l
+      satisfy_constraint_diag(p, neighbor)
+      --L.print(idx)
+    end 
+  end 
+end 
+
+--satisfies diagonal beginning on even rows and odd columns
+local ebb satisfy_diagonal_eroc(p : particles)
+  var idx = L.id(p)
+  var row = idx / N 
+  var col = idx % N 
+  p.new_pos = p.pos
+  --look down left or down right 
+  if(row % 2 == 0 and row ~= N - 1) then 
+    if(col % 2 ~= 0 and col ~= N - 1) then 
+      var neighbor = p.struct_d.struct_r
+      satisfy_constraint_diag(p, neighbor) 
+    elseif(col % 2 == 0 and col ~= 0) then 
+      var neighbor = p.struct_d.struct_l
+      satisfy_constraint_diag(p, neighbor)
+    end 
+  end
+  if(row % 2 ~= 0 and row ~= 0) then 
+    if(col % 2 ~= 0 and col ~= N - 1) then 
+      var neighbor = p.struct_u.struct_r
+      satisfy_constraint_diag(p, neighbor)
+    elseif(col % 2 == 0 and col ~= 0) then 
+      var neighbor = p.struct_u.struct_l
+      satisfy_constraint_diag(p, neighbor)
+    end 
+  end 
+end 
+
+--satisfies diagonal beginning on odd rows and odd columns 
+local ebb satisfy_diagonal_orec(p : particles)
+  var idx = L.id(p)
+  var row = idx / N 
+  p.new_pos = p.pos
+  var col = idx % N 
+  --look down left or down right.
+  if(row % 2 ~= 0 and row ~= N - 1) then 
+    if(col % 2 == 0 and col ~= N - 1) then 
+      var neighbor = p.struct_d.struct_r
+      satisfy_constraint_diag(p, neighbor)
+    elseif(col % 2 ~= 0) then 
+      var neighbor = p.struct_d.struct_l
+      satisfy_constraint_diag(p, neighbor)
+    end 
+  end 
+  --look up left or up right 
+  if(row % 2 == 0 and row ~= 0) then 
+    if(col % 2 == 0 and col ~= N - 1) then 
+      var neighbor = p.struct_u.struct_r
+      satisfy_constraint_diag(p, neighbor)
+    elseif(col % 2 ~= 0) then 
+      var neighbor = p.struct_u.struct_l
+      satisfy_constraint_diag(p, neighbor)
+    end
+  end 
+end
+
+local ebb satisfy_diagonal_oroc(p : particles)
+  var idx = L.id(p)
+  var row = idx / N 
+  var col = idx % N 
+  p.new_pos = p.pos
+  --look down left or down right 
+  if(row % 2 ~= 0 and row ~= N - 1) then 
+    if(col % 2 ~= 0 and col ~= N - 1) then 
+      var neighbor = p.struct_d.struct_r
+      satisfy_constraint_diag(p, neighbor)
+    elseif(col % 2 == 0 and col ~= 0) then 
+      var neighbor = p.struct_d.struct_l
+      satisfy_constraint_diag(p, neighbor)
+    end 
+  end
+  if(row % 2 == 0 and row ~= 0) then 
+    if(col % 2 ~= 0 and col ~= N - 1) then 
+      var neighbor = p.struct_u.struct_r
+      satisfy_constraint_diag(p, neighbor)
+    elseif(col % 2 == 0 and col ~= 0) then 
+      var neighbor = p.struct_u.struct_l
+      satisfy_constraint_diag(p, neighbor)
+    end 
+  end 
+end   
+
+local ebb apply_new_pos(p : particles)
+  p.pos = p.new_pos 
+end 
 
 -------------------------------------------------------------------------------
 
@@ -281,18 +485,41 @@ local ebb visualize_particles ( p : particles )
 
 end
 
+local ebb particle_print(p : particles)
+  L.print(p.pos, p.new_pos)
+end 
+
 -------------------------------------------------------------------------------
-local i = 0
+
 while true do
+  
+  --print("iter", i)
+
   particles:foreach(apply_forces)
   particles:foreach(update_pos)
-  particles:foreach(satisfy_constraints)
-
+  particles:foreach(reset_fixed_particles)
+  --constraint satisfaction
+  for j=1,3 do 
+    particles:foreach(satisfy_horizontal_odd)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_horizontal_even)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_vertical_odd)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_vertical_even)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_diagonal_erec)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_diagonal_eroc)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_diagonal_orec)
+    particles:foreach(apply_new_pos)
+    particles:foreach(satisfy_diagonal_oroc)
+    particles:foreach(apply_new_pos)
+  end 
   vdb.vbegin()
   vdb.frame()
     particles:foreach(visualize_particles)
   vdb.vend()
-  i = i + 1
-  --print("iter", i)
 
 end

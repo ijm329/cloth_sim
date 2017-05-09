@@ -449,7 +449,14 @@ void Cloth::apply_spring_forces()
         vector3D disp = dir - rest;
         vector3D vel = get_velocity(p2) - get_velocity(p1);
 
-        vector3D spring_force = -springs[i].k * disp - springs[i].damping * vel;
+        vector3D spring_force = -springs[i].k*disp - springs[i].damping * vel;
+
+        //std::cout<<p1-&particles[0]<<" " <<rest<<disp<<vel<<dir<<dir*100<<rest<<rest*100<<std::endl;
+        //std::cout<<springs[i].spring_type<< " " <<p1-&particles[0]<<" "<<-spring_force<<std::endl;
+        //std::cout<<springs[i].spring_type<<" " <<p2-&particles[0]<<" "<<spring_force<<std::endl;
+
+        //if(springs[i].spring_type == FLEXION)
+        //    std::cout<<"*********"<<vel<<" " << rest<<" " << disp<<std::endl;
 
         p1->force += -spring_force;
         p2->force += spring_force;
@@ -594,6 +601,7 @@ void Cloth::update_positions()
 {
     //perform verlet integration
     int num_particles = get_num_particles();
+    //std::cout<<"Forces " << std::endl;
     for(int i = 0; i < num_particles; i++)
     {
         //std::cout<<i<<" " << particles[i].force << std::endl;
