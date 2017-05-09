@@ -618,10 +618,6 @@ void Cloth::simulate_timestep()
 {
     reset_normals();
     apply_forces();
-    for(int i = 0; i < get_num_particles(); i++)
-    {
-      std::cout << particles[i].force << std::endl;
-    }
     update_positions();
     satisfy_constraints();
 }
