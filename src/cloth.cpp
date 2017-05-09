@@ -550,10 +550,12 @@ void Cloth::reset_fixed_particles()
 
 void Cloth::satisfy_constraints()
 {
-    int num_springs = get_num_springs();
+    int num_shear = 2 * (num_particles_width - 1) * (num_particles_height - 1);
+    int num_structural = num_particles_height * (num_particles_width - 1) + 
+                         num_particles_width * (num_particles_height - 1);
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
     {
-        for(int i = 0; i < num_springs; i++)
+        for(int i = 0; i < num_shear + num_structural; i++)
         {
             particle *p1 = springs[i].left;
             particle *p2 = springs[i].right;
@@ -577,7 +579,6 @@ void Cloth::satisfy_constraints()
         }
         reset_fixed_particles();
     }
-
     //        //std::cout<<diff_ratio<<std::endl;
     //        if(diff_ratio > DIFF_CRITICAL)
     //        {
@@ -622,6 +623,5 @@ void Cloth::simulate_timestep()
       std::cout << particles[i].force << std::endl;
     }
     update_positions();
-    reset_fixed_particles();
-    //satisfy_constraints();
+    satisfy_constraints();
 }
