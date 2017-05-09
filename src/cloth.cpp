@@ -449,7 +449,14 @@ void Cloth::apply_spring_forces()
         vector3D disp = dir - rest;
         vector3D vel = get_velocity(p2) - get_velocity(p1);
 
-        vector3D spring_force = -springs[i].k * disp - springs[i].damping * vel;
+        vector3D spring_force = -springs[i].k*disp - springs[i].damping * vel;
+
+        //std::cout<<p1-&particles[0]<<" " <<rest<<disp<<vel<<dir<<dir*100<<rest<<rest*100<<std::endl;
+        //std::cout<<springs[i].spring_type<< " " <<p1-&particles[0]<<" "<<-spring_force<<std::endl;
+        //std::cout<<springs[i].spring_type<<" " <<p2-&particles[0]<<" "<<spring_force<<std::endl;
+
+        //if(springs[i].spring_type == FLEXION)
+        //    std::cout<<"*********"<<vel<<" " << rest<<" " << disp<<std::endl;
 
         p1->force += -spring_force;
         p2->force += spring_force;
@@ -461,9 +468,9 @@ void Cloth::apply_wind_forces()
     //calculate vector normal to the points on the mesh to account for 
     //wind force. Make two triangles that form a square that travels around the 
     //mesh computing the wind forces
-    for(int i = 0; i < num_particles_width - 1; i++)
+    for(int j = 0; j < num_particles_height - 1; j++)
     {
-        for(int j = 0; j < num_particles_height - 1; j++)
+        for(int i = 0; i < num_particles_width - 1; i++)
         {
             int curr_idx = j * num_particles_width + i;
             int right_idx = curr_idx + 1;
@@ -474,6 +481,10 @@ void Cloth::apply_wind_forces()
             vector3D right = particles[right_idx].pos;
             vector3D lower = particles[lower_idx].pos;
             vector3D diagonal = particles[diag_idx].pos;
+
+            //std::cout << "(" << j << "," << i << ")" << " = "<<curr_idx<<std::endl;
+            //std::cout << "r: "<<right_idx << " "<<right <<std::endl;
+            //std::cout << "d: "<<lower_idx << " " <<lower <<std::endl;
 
             // make two triangles to complete a square 
             vector3D wind(WIND_X, WIND_Y, WIND_Z);
@@ -493,14 +504,25 @@ void Cloth::apply_wind_forces()
             vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
             vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
 
+            //std::cout<<right_idx<<","<<curr_idx<<","<<lower_idx<<":"<<norm1<<" "<<wind_force1<<std::endl;
+
             //force 1
             particles[right_idx].force += wind_force1;
             particles[curr_idx].force += wind_force1;
             particles[lower_idx].force += wind_force1;
+
+            //if(curr_idx == 1 || right_idx == 1 || lower_idx == 1)
+            //    std::cout<<"adding " <<wind_force1<<" " << norm1<<std::endl;
+
             //force2
             particles[right_idx].force += wind_force2;
             particles[diag_idx].force += wind_force2;
             particles[lower_idx].force += wind_force2;
+
+            //std::cout<<right_idx<<","<<diag_idx<<","<<lower_idx<<":"<<norm2<<" "<<wind_force2<<std::endl;
+
+            //if(right_idx == 1 || diag_idx == 1 || lower_idx == 1)
+            //    std::cout<<"adding " <<wind_force2 << " " << norm2<<std::endl;
         }
     }
 }
@@ -579,6 +601,7 @@ void Cloth::update_positions()
 {
     //perform verlet integration
     int num_particles = get_num_particles();
+    //std::cout<<"Forces " << std::endl;
     for(int i = 0; i < num_particles; i++)
     {
         //std::cout<<i<<" " << particles[i].force << std::endl;
