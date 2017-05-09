@@ -1,9 +1,10 @@
 import 'ebb'
 local L = require 'ebblib'
-local vdb       = require 'ebb.lib.vdb'
+local vdb = require 'ebb.lib.vdb'
+local os = require 'os'
 
 --particle initialization 
-local N = 64
+local N = 1024
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
@@ -495,11 +496,19 @@ while true do
   
   --print("iter", i)
 
+  local apply_start = os.clock()
   particles:foreach(apply_forces)
+  local apply_end = os.clock()
+  print(string.format("apply_forces: %f\n", apply_end - apply_start))
+  local update_start = os.clock()
   particles:foreach(update_pos)
+  local update_end = os.clock()
+  print(string.format("update_pos: %f\n", update_end - update_start))
   particles:foreach(reset_fixed_particles)
+
+  local constraint_start = os.clock()
   --constraint satisfaction
-  for j=1,3 do 
+  for j=1,300 do 
     particles:foreach(satisfy_horizontal_odd)
     particles:foreach(apply_new_pos)
     particles:foreach(satisfy_horizontal_even)
@@ -517,6 +526,9 @@ while true do
     particles:foreach(satisfy_diagonal_oroc)
     particles:foreach(apply_new_pos)
   end 
+  local constraint_end = os.clock()
+  print(string.format("constraint_pos: %f\n", constraint_end - constraint_start))
+
   vdb.vbegin()
   vdb.frame()
     particles:foreach(visualize_particles)

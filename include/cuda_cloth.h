@@ -66,13 +66,6 @@
 #define ASSERT(cond)
 #endif
 
-typedef struct GlobalConstants
-{
-    int num_particles_width;
-    int num_particles_height;
-    particle *dev_particles;
-} GlobalConstants;
-
 typedef enum
 {
     STRUCTURAL,
@@ -88,6 +81,14 @@ typedef struct particle
     vector3D normal;
     bool fixed;
 } particle;
+
+typedef struct GlobalConstants
+{
+    int num_particles_width;
+    int num_particles_height;
+    particle *dev_particles;
+} GlobalConstants;
+
 
 class CudaCloth
 {
@@ -118,6 +119,7 @@ class CudaCloth
         void render(float rotate_x, float rotate_y, float translate_z);
         inline int get_num_particles();
         inline int get_num_springs();
+        void get_particles();
 };
 
 
