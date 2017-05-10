@@ -42,7 +42,7 @@ void CudaCloth::get_particles()
                                 cudaMemcpyDeviceToHost));
     for(int i = 0; i < num_particles; i++)
     {
-        printf("(%f, %f, %f)\n", particles[i].force.x, particles[i].force.y, particles[i].force.z);
+        printf("(%f, %f, %f)\n", particles[i].pos.x, particles[i].pos.y, particles[i].pos.z);
     }
 }
 
@@ -145,6 +145,8 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
     int shared_mem_y = blockDim.y + 2;
     float3 tot_force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     __shared__ particle blk_particles[TPB_Y + 2][TPB_X + 2];
+    //row 1: up, row 2: down , row 3: left row 4: right
+    __shared__ particle flexion_parts[4][TPB_X];
     if(row < height && col < width)
     {
         //cooperatively load into the array the necessary particles starting 
@@ -165,6 +167,16 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             {
                 blk_particles[0][threadIdx.x + 1].pos = make_float3(-2.0, -2.0, -2.0);
             }
+            //ensure that you have an upper flexion spring 
+            if(row - 2 >= 0)
+            {
+                int f_top = (row - 2) * width + col;
+                flexion_parts[0][threadIdx.x] = dev_parts[f_top];
+            }
+            else
+            {
+                flexion_parts[0][threadIdx.x].pos = make_float3(-2.0, -2.0, -2.0);
+            }
         }
         //bottom particles
         else if(threadIdx.y == blockDim.y - 1)
@@ -178,6 +190,15 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             else
             {
                 blk_particles[threadIdx.y + 2][threadIdx.x + 1].pos = make_float3(-2.0, -2.0, -2.0);
+            }
+            if(row + 2 < height)
+            {
+                int f_btm = (row + 2) * width + col;
+                flexion_parts[1][threadIdx.x] = dev_parts[f_btm];
+            }
+            else
+            {
+                flexion_parts[1][threadIdx.x].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //left
@@ -193,6 +214,15 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             {
                 blk_particles[threadIdx.y + 1][0].pos = make_float3(-2.0, -2.0, -2.0);
             }
+            if(col - 2 >= 0)
+            {
+                int f_left = idx - 2; 
+                flexion_parts[2][threadIdx.y] = dev_parts[f_left];
+            }
+            else
+            {
+                flexion_parts[2][threadIdx.y].pos = make_float3(-2.0, -2.0, -2.0);
+            }
         }
         //right 
         else if(threadIdx.x == blockDim.x - 1)
@@ -206,6 +236,15 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             else
             {
                 blk_particles[threadIdx.y + 1][threadIdx.x + 2].pos = make_float3(-2.0, -2.0, -2.0);
+            }
+            if(col + 2 < width)
+            {
+                int f_right = idx + 2;
+                flexion_parts[3][threadIdx.y] = dev_parts[f_right];
+            }
+            else
+            {
+                flexion_parts[3][threadIdx.y].pos = make_float3(-2, -2, -2);
             }
         }
         //corners 
@@ -271,6 +310,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
         int shear_len = get_spr_len(width, height, SHEAR);
         int flex_len = 2 * struct_len;
         particle curr = blk_particles[sblk_row][sblk_col];
+        int idx = row * width + col;
         if(row != 0 && col != width - 1)
         {
             particle top = blk_particles[sblk_row - 1][sblk_col];
@@ -318,6 +358,63 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
         if(row != height - 1)
             tot_force += compute_spring_force(curr, blk_particles[sblk_row + 1][sblk_col], 
                                               struct_len, STRUCTURAL);
+
+        //flexion
+        //starting with upper springs 
+        if(row - 2 >= 0)
+        {
+            //check to see which array it's in 
+            particle f_top;
+            if(sblk_row - 2 >= 0)
+            {
+                f_top = blk_particles[sblk_row - 2][sblk_col];
+            }
+            else
+            {
+                f_top = flexion_parts[0][threadIdx.x];
+            }
+            tot_force += compute_spring_force(curr, f_top, flex_len, FLEXION);
+        }
+        if(row + 2 < height)
+        {
+            particle f_btm;
+            if(sblk_row + 2 < shared_mem_y)
+            {
+                f_btm = blk_particles[sblk_row + 2][sblk_col];
+            }
+            else
+            {
+                f_btm = flexion_parts[1][threadIdx.x];
+            }
+            tot_force += compute_spring_force(curr, f_btm, flex_len, FLEXION);
+        }
+        if(col - 2 >= 0)
+        {
+            particle f_left;
+            if(sblk_col - 2 >= 0)
+            {
+                f_left = blk_particles[sblk_row][sblk_col - 2];
+            }
+            else
+            {
+                f_left = flexion_parts[2][threadIdx.y];
+            }
+            tot_force += compute_spring_force(curr, f_left, flex_len, FLEXION);
+        }
+        if(col + 2 < width)
+        {
+            particle f_right;
+            if(sblk_col + 2 < shared_mem_x)
+            {
+                f_right = blk_particles[sblk_row][sblk_col + 2];
+            }
+            else
+            {
+                f_right = flexion_parts[3][threadIdx.y];
+            }
+            tot_force += compute_spring_force(curr, f_right, flex_len, FLEXION);
+        }
+        dev_parts[idx].force = tot_force;
     }
 }
 
@@ -363,7 +460,7 @@ void CudaCloth::update_positions()
 void CudaCloth::simulate_timestep()
 {
     apply_forces();
-    //update_positions();
+    update_positions();
     //satisfy_constraints();
 }
 
