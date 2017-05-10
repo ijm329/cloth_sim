@@ -40,10 +40,10 @@ void CudaCloth::get_particles()
 {
     GPU_ERR_CHK(cudaMemcpy(particles, dev_particles, sizeof(particle) * num_particles, 
                                 cudaMemcpyDeviceToHost));
-    for(int i = 0; i < num_particles; i++)
+    /*for(int i = 0; i < num_particles; i++)
     {
       printf("%d {%f, %f, %f}\n", i, particles[i].pos.x, particles[i].pos.y, particles[i].pos.z);
-    }
+    }*/
 }
 
 // initializes cloth positions and allocates memory region in the device and 
@@ -179,7 +179,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
         }
         //bottom particles
-        else if(threadIdx.y == blockDim.y - 1)
+        if(threadIdx.y == blockDim.y - 1)
         {
             //not the bottom row in the system
             if(row != height - 1)
@@ -225,7 +225,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
         }
         //right 
-        else if(threadIdx.x == blockDim.x - 1)
+        if(threadIdx.x == blockDim.x - 1)
         {
             //if you're not the right edge in the system
             if(col != width - 1)
@@ -263,7 +263,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
         }
         //top right
-        else if(threadIdx.x == blockDim.x - 1 && threadIdx.y == 0)
+        if(threadIdx.x == blockDim.x - 1 && threadIdx.y == 0)
         {
             if(row != 0 && col != width - 1)
             {
@@ -276,11 +276,11 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
         }
         //bottom left
-        else if(threadIdx.x == 0 && threadIdx.y == blockDim.y - 1)
+        if(threadIdx.x == 0 && threadIdx.y == blockDim.y - 1)
         {
             if(row != height - 1 && col != 0)
             {
-                int btm_left = (row + 1) * width + col - 1;
+                int btm_left = (row + 1) * width + (col - 1);
                 blk_particles[shared_mem_y - 1][0] = dev_parts[btm_left];
             }
             else
@@ -289,11 +289,11 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
         }
         //bottom right 
-        else if(threadIdx.x == blockDim.x - 1 && threadIdx.y == blockDim.y - 1)
+        if(threadIdx.x == blockDim.x - 1 && threadIdx.y == blockDim.y - 1)
         {
             if(row != height - 1 && col != width - 1)
             {
-                int btm_right = (row + 1) * width + col + 1;
+                int btm_right = (row + 1) * width + (col + 1);
                 blk_particles[shared_mem_y - 1][shared_mem_x - 1] = dev_parts[btm_right];
             }
         }
@@ -443,13 +443,12 @@ __global__ void update_all_positions(int width, int height, particle *dev_parts)
                              acc * TIME_STEP * TIME_STEP); 
         curr.prev_pos = temp;
         dev_parts[i].pos = curr.pos;
+        dev_parts[i].prev_pos = curr.prev_pos;
     }
 }
 
 void CudaCloth::update_positions()
 {
-    printf("Yes hello\n");
-    //setup invocation for update positions
     dim3 threadsPerBlock(TPB_X, TPB_Y, 1);
     dim3 numBlocks(num_particles_width / TPB_X, num_particles_height / TPB_Y, 1);
     update_all_positions<<<numBlocks, threadsPerBlock>>>(num_particles_width, 
@@ -460,6 +459,7 @@ void CudaCloth::update_positions()
 
 void CudaCloth::simulate_timestep()
 {
+
     apply_forces();
     update_positions();
     //satisfy_constraints();
