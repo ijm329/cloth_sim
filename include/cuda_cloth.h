@@ -96,15 +96,6 @@ typedef struct particle
     vector3D force;
 } particle;
 
-typedef struct GlobalConstants
-{
-    int num_particles_width;
-    int num_particles_height;
-    particle *dev_particles;
-} GlobalConstants;
-
-__device__ GlobalConstants *cuConstClothParams;
-
 class CudaCloth
 {
     private:
@@ -112,7 +103,6 @@ class CudaCloth
         int num_particles_height;
         int num_particles;
         particle *particles;
-        particle *dev_particles;
 
         void update_positions();
         void apply_forces();
