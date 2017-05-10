@@ -1,7 +1,5 @@
 #include "cuda_cloth.h"
 
-__constant__ GlobalConstants cuConstClothParams;
-
 CudaCloth::CudaCloth(int n)
 {
     num_particles_width = n;
@@ -18,7 +16,8 @@ CudaCloth::CudaCloth(int n)
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
     params.dev_particles = dev_particles;
-    GPU_ERR_CHK(cudaMemcpyToSymbol(cuConstClothParams, &params, sizeof(GlobalConstants), 0, cudaMemcpyHostToDevice));
+    GPU_ERR_CHK(cudaMalloc(&cuConstClothParams, sizeof(GlobalConstants)));
+    GPU_ERR_CHK(cudaMemcpy(cuConstClothParams, &params, sizeof(GlobalConstants), cudaMemcpyHostToDevice));
 }
 
 CudaCloth::CudaCloth(int w, int h)
@@ -36,7 +35,8 @@ CudaCloth::CudaCloth(int w, int h)
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
     params.dev_particles = dev_particles;
-    GPU_ERR_CHK(cudaMemcpyToSymbol(cuConstClothParams, &params, sizeof(GlobalConstants), 0, cudaMemcpyHostToDevice));
+    GPU_ERR_CHK(cudaMalloc(&cuConstClothParams, sizeof(GlobalConstants)));
+    GPU_ERR_CHK(cudaMemcpy(cuConstClothParams, &params, sizeof(GlobalConstants), cudaMemcpyHostToDevice));
 }
 
 CudaCloth::~CudaCloth()
@@ -81,13 +81,13 @@ __device__ void load_particles(particle **blk_particles)
     //row in col within the entire grid of threads
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
-    int dev_num_particles_width = cuConstClothParams.num_particles_width;
-    int dev_num_particles_height = cuConstClothParams.num_particles_height;
+    int dev_num_particles_width = cuConstClothParams->num_particles_width;
+    int dev_num_particles_height = cuConstClothParams->num_particles_height;
     //create a 2D array of shared memory for particles that will be used by 
     //block
     int shared_mem_x = blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    particle *dev_particles = cuConstClothParams.dev_particles;
+    particle *dev_particles = cuConstClothParams->dev_particles;
     vector3D tot_force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     //cooperatively load into the array the necessary particles starting 
     //with those contained in the thread block.
@@ -207,13 +207,13 @@ __global__ void apply_all_forces()
     //row in col within the entire grid of threads
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
-    int dev_num_particles_width = cuConstClothParams.num_particles_width;
-    int dev_num_particles_height = cuConstClothParams.num_particles_height;
+    int dev_num_particles_width = cuConstClothParams->num_particles_width;
+    int dev_num_particles_height = cuConstClothParams->num_particles_height;
     //create a 2D array of shared memory for particles that will be used by 
     //block
     int shared_mem_x =  blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    particle *dev_particles = cuConstClothParams.dev_particles;
+    particle *dev_particles = cuConstClothParams->dev_particles;
     vector3D force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     __shared__ particle blk_particles[TPB_Y + 2][TPB_X + 2];
     if(row < dev_num_particles_height && col < dev_num_particles_width)
@@ -233,18 +233,18 @@ __global__ void update_all_positions()
 {
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
-    int dev_num_particles_width = cuConstClothParams.num_particles_width;
-    int dev_num_particles_height = cuConstClothParams.num_particles_height;
+    int dev_num_particles_width = cuConstClothParams->num_particles_width;
+    int dev_num_particles_height = cuConstClothParams->num_particles_height;
     if(row < dev_num_particles_height && col < dev_num_particles_width)
     {
         int i = row * dev_num_particles_width + col;
-        particle curr = cuConstClothParams.dev_particles[i];
+        particle curr = cuConstClothParams->dev_particles[i];
         vector3D temp(curr.pos);
         vector3D acc = curr.force/PARTICLE_MASS;
         curr.pos += (curr.pos - curr.prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
         curr.prev_pos = temp;
-        cuConstClothParams.dev_particles[i] = curr;
+        cuConstClothParams->dev_particles[i] = curr;
     }
 }
 

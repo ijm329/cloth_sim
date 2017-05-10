@@ -103,6 +103,8 @@ typedef struct GlobalConstants
     particle *dev_particles;
 } GlobalConstants;
 
+__device__ GlobalConstants *cuConstClothParams;
+
 class CudaCloth
 {
     private:
