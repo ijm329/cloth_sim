@@ -40,6 +40,10 @@ void CudaCloth::get_particles()
 {
     GPU_ERR_CHK(cudaMemcpy(particles, dev_particles, sizeof(particle) * num_particles, 
                                 cudaMemcpyDeviceToHost));
+    for(int i = 0; i < num_particles; i++)
+    {
+        printf("(%f, %f, %f)\n", particles[i].force.x, particles[i].force.y, particles[i].force.z);
+    }
 }
 
 // initializes cloth positions and allocates memory region in the device and 
@@ -86,11 +90,10 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
     //block
     int shared_mem_x =  blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    float3 force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
+    float3 tot_force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     __shared__ particle blk_particles[TPB_Y + 2][TPB_X + 2];
     if(row < height && col < width)
     {
-        float3 tot_force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
         //cooperatively load into the array the necessary particles starting 
         //with those contained in the thread block.
         int idx = (row * width) + col;
@@ -211,37 +214,37 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
         //your row and col within the shared mem matrix
         int sblk_row = threadIdx.y + 1;
         int sblk_col = threadIdx.x + 1;
-        particle curr = blk_particles[sblk_row][sblk_col];
+        float3 curr = blk_particles[sblk_row][sblk_col].pos;
         if(row != 0 && col != width - 1)
         {
             float3 top = blk_particles[sblk_row - 1][sblk_col].pos;
             float3 top_right = blk_particles[sblk_row - 1][sblk_col + 1].pos;
-            curr.force += compute_wind_force(top_right, top, curr.pos);
+            tot_force += compute_wind_force(top_right, top, curr);
             float3 right = blk_particles[sblk_row][sblk_col + 1].pos;
-            curr.force += compute_wind_force(right, top_right, curr.pos);
+            tot_force += compute_wind_force(right, top_right, curr);
         }
-        if(row != height && col != width - 1)
+        if(row != height - 1 && col != width - 1)
         {
             float3 bottom = blk_particles[sblk_row + 1][sblk_col].pos;
             float3 right = blk_particles[sblk_row][sblk_col + 1].pos;
-            curr.force += compute_wind_force(right, curr.pos, bottom);
+            tot_force += compute_wind_force(right, curr, bottom);
         }
-        if(row != height && col != 0)
+        if(row != height - 1 && col != 0)
         {
             float3 bottom = blk_particles[sblk_row + 1][sblk_col].pos;
             float3 bottom_left = blk_particles[sblk_row + 1][sblk_col - 1].pos;
-            curr.force += compute_wind_force(bottom, curr.pos, bottom_left);
+            tot_force += compute_wind_force(bottom, curr, bottom_left);
             float3 left = blk_particles[sblk_row][sblk_col - 1].pos;
-            curr.force += compute_wind_force(curr.pos, left, bottom_left);
+            tot_force += compute_wind_force(curr, left, bottom_left);
         }
         if(row != 0 && col != 0)
         {
             float3 upper = blk_particles[sblk_row - 1][sblk_col].pos;
             float3 left = blk_particles[sblk_row][sblk_col - 1].pos;
-            curr.force += compute_wind_force(curr.pos, upper, left);
-        }
+            tot_force += compute_wind_force(curr, upper, left);
+        } 
         //write back forces for now
-        dev_parts[row * width + col].force = curr.force;
+        dev_parts[row * width + col].force = tot_force;
     }
 }
 
@@ -287,7 +290,7 @@ void CudaCloth::update_positions()
 void CudaCloth::simulate_timestep()
 {
     apply_forces();
-    update_positions();
+    //update_positions();
     //satisfy_constraints();
 }
 

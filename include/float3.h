@@ -102,5 +102,4 @@ inline CUDA_HOSTDEV float3 normalize(float3 v)
     return v * invLen;
 }
 
-
 #endif /* FLOAT3_H */
