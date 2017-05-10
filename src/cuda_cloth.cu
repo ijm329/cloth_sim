@@ -263,13 +263,13 @@ __global__ void update_all_positions(int width, int height, particle *dev_parts)
     if(row < height && col < width)
     {
         int i = row * width + col;
-        /*particle curr = dev_parts[i];
+        particle curr = dev_parts[i];
         float3 temp(curr.pos);
         float3 acc = curr.force/PARTICLE_MASS;
         curr.pos += (curr.pos - curr.prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
-        curr.prev_pos = temp;*/
-        dev_parts[i].pos = make_float3(-9.0,-9.0,-9.0);
+        curr.prev_pos = temp;
+        dev_parts[i].pos = curr.pos;
     }
 }
 
@@ -287,7 +287,7 @@ void CudaCloth::update_positions()
 void CudaCloth::simulate_timestep()
 {
     apply_forces();
-    //update_positions();
+    update_positions();
     //satisfy_constraints();
 }
 
