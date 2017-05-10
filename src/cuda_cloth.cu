@@ -40,10 +40,6 @@ void CudaCloth::get_particles()
 {
     GPU_ERR_CHK(cudaMemcpy(particles, dev_particles, sizeof(particle) * num_particles, 
                                 cudaMemcpyDeviceToHost));
-    for(int i = 0; i < num_particles; i++)
-    {
-        std::cout << particles[i].pos.x << std::endl;
-    }
 }
 
 // initializes cloth positions and allocates memory region in the device and 
@@ -238,8 +234,8 @@ void CudaCloth::update_positions()
 {
     printf("Yes hello\n");
     //setup invocation for update positions
-    dim3 threadsPerBlock(2,2,1);
-    dim3 numBlocks(3, 3, 1);
+    dim3 threadsPerBlock(TPB_X, TPB_Y,1);
+    dim3 numBlocks(num_particles_width / TPB_X, num_particles_height / TPB_Y, 1);
     update_all_positions<<<numBlocks, threadsPerBlock>>>(num_particles_width, 
                                                          num_particles_height, 
                                                          dev_particles);
