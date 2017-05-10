@@ -27,6 +27,7 @@
 #include <helper_cuda_gl.h>      // helper functions for CUDA/GL interop
 
 #include <vector_types.h>
+#include "float3.h"
 
 //Simulation Constants
 #define TIME_STEP 0.00314 //in seconds
@@ -91,9 +92,9 @@ typedef enum
 
 typedef struct particle
 {
-    vector3D pos;
-    vector3D prev_pos;
-    vector3D force;
+    float3 pos;
+    float3 prev_pos;
+    float3 force;
 } particle;
 
 class CudaCloth

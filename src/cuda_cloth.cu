@@ -75,11 +75,11 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
     //block
     int shared_mem_x =  blockDim.x + 2;
     int shared_mem_y = blockDim.y + 2;
-    vector3D force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
+    float3 force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     __shared__ particle blk_particles[TPB_Y + 2][TPB_X + 2];
     if(row < height && col < width)
     {
-        vector3D tot_force = vector3D(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
+        float3 tot_force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
         //cooperatively load into the array the necessary particles starting 
         //with those contained in the thread block.
         int idx = (row * width) + col;
@@ -96,7 +96,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[0][threadIdx.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[0][threadIdx.x + 1].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //bottom particles
@@ -110,7 +110,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[threadIdx.y + 2][threadIdx.x + 1].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[threadIdx.y + 2][threadIdx.x + 1].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //left
@@ -124,7 +124,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[threadIdx.y + 1][0].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[threadIdx.y + 1][0].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //right 
@@ -138,7 +138,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[threadIdx.y + 1][threadIdx.x + 2].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[threadIdx.y + 1][threadIdx.x + 2].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //corners 
@@ -153,7 +153,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[0][0].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[0][0].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //top right
@@ -166,7 +166,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[0][shared_mem_x - 1].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[0][shared_mem_x - 1].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //bottom left
@@ -179,7 +179,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             }
             else
             {
-                blk_particles[shared_mem_y - 1][0].pos = vector3D(-2.0, -2.0, -2.0);
+                blk_particles[shared_mem_y - 1][0].pos = make_float3(-2.0, -2.0, -2.0);
             }
         }
         //bottom right 
@@ -213,13 +213,13 @@ __global__ void update_all_positions(int width, int height, particle *dev_parts)
     if(row < height && col < width)
     {
         int i = row * width + col;
-        particle curr = dev_parts[i];
-        vector3D temp(curr.pos);
-        vector3D acc = curr.force/PARTICLE_MASS;
+        /*particle curr = dev_parts[i];
+        float3 temp(curr.pos);
+        float3 acc = curr.force/PARTICLE_MASS;
         curr.pos += (curr.pos - curr.prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
-        curr.prev_pos = temp;
-        dev_parts[i] = curr;
+        curr.prev_pos = temp;*/
+        dev_parts[i].pos = make_float3(-9.0,-9.0,-9.0);
     }
 }
 
