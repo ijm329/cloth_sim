@@ -21,7 +21,7 @@ if(${CUDA_FOUND})
                           ${OPENGL_LIBRARIES})
 endif(${CUDA_FOUND})
 
-#add_executable(cloth_sim ${CPP_SOURCES})
+#add_executable(cloth_sim ${CPP_SOURCE} vector3D.cpp cloth.cpp main.cpp)
 #target_link_libraries(cloth_sim
 #                      ${GLEW_LIBRARIES} 
 #                      ${GLUT_LIBRARIES} 

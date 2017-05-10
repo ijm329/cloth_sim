@@ -42,7 +42,7 @@ void CudaCloth::get_particles()
                                 cudaMemcpyDeviceToHost));
     for(int i = 0; i < num_particles; i++)
     {
-        printf("(%f, %f, %f)\n", particles[i].pos.x, particles[i].pos.y, particles[i].pos.z);
+      printf("%d {%f, %f, %f}\n", i, particles[i].pos.x, particles[i].pos.y, particles[i].pos.z);
     }
 }
 
@@ -318,7 +318,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             tot_force += compute_wind_force(top_right.pos, top.pos, curr.pos);
             particle right = blk_particles[sblk_row][sblk_col + 1];
             tot_force += compute_wind_force(right.pos, top_right.pos, curr.pos);
-            tot_force += compute_spring_force(curr, top_right, shear_len, SHEAR);
+            //tot_force += compute_spring_force(curr, top_right, shear_len, SHEAR);
         }
         if(row != height - 1 && col != width - 1)
         {
@@ -326,7 +326,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             particle right = blk_particles[sblk_row][sblk_col + 1];
             tot_force += compute_wind_force(right.pos, curr.pos, bottom.pos);
             particle bottom_right = blk_particles[sblk_row + 1][sblk_col + 1];
-            tot_force += compute_spring_force(curr, bottom_right, shear_len, SHEAR);
+            //tot_force += compute_spring_force(curr, bottom_right, shear_len, SHEAR);
         }
         if(row != height - 1 && col != 0)
         {
@@ -335,7 +335,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             tot_force += compute_wind_force(bottom.pos, curr.pos, bottom_left.pos);
             particle left = blk_particles[sblk_row][sblk_col - 1];
             tot_force += compute_wind_force(curr.pos, left.pos, bottom_left.pos);
-            tot_force += compute_spring_force(curr, bottom_left, shear_len, SHEAR);
+            //tot_force += compute_spring_force(curr, bottom_left, shear_len, SHEAR);
         }
         if(row != 0 && col != 0)
         {
@@ -343,10 +343,10 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
             particle left = blk_particles[sblk_row][sblk_col - 1];
             tot_force += compute_wind_force(curr.pos, upper.pos, left.pos);
             particle upper_left = blk_particles[sblk_row - 1][sblk_col - 1];
-            tot_force += compute_spring_force(curr, upper_left, shear_len, SHEAR);
+            //tot_force += compute_spring_force(curr, upper_left, shear_len, SHEAR);
         }
         //structural forces
-        if(col != 0)
+        /*if(col != 0)
             tot_force += compute_spring_force(curr, blk_particles[sblk_row][sblk_col - 1], 
                                               struct_len, STRUCTURAL);
         if(col != width - 1)
@@ -413,7 +413,7 @@ __global__ void apply_all_forces(int width, int height, particle *dev_parts)
                 f_right = flexion_parts[3][threadIdx.y];
             }
             tot_force += compute_spring_force(curr, f_right, flex_len, FLEXION);
-        }
+        }*/
         dev_parts[idx].force = tot_force;
     }
 }
@@ -431,13 +431,13 @@ void CudaCloth::apply_forces()
 
 __global__ void update_all_positions(int width, int height, particle *dev_parts)
 {
-    int row = blockIdx.x * blockDim.x + threadIdx.x;
-    int col = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
     if(row < height && col < width)
     {
         int i = row * width + col;
         particle curr = dev_parts[i];
-        float3 temp(curr.pos);
+        float3 temp = make_float3(curr.pos.x, curr.pos.y, curr.pos.z);
         float3 acc = curr.force/PARTICLE_MASS;
         curr.pos += (curr.pos - curr.prev_pos +
                              acc * TIME_STEP * TIME_STEP); 
@@ -455,6 +455,7 @@ void CudaCloth::update_positions()
     update_all_positions<<<numBlocks, threadsPerBlock>>>(num_particles_width, 
                                                          num_particles_height, 
                                                          dev_particles);
+    cudaDeviceSynchronize();
 }
 
 void CudaCloth::simulate_timestep()

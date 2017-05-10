@@ -83,6 +83,11 @@ inline CUDA_HOSTDEV float dot(float3 a, float3 b)
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+inline CUDA_HOSTDEV bool operator==(const float3& a, float3 b) 
+{
+    return ((a.x == b.x) && (a.y == b.y) && (a.z == b.z));
+}
+
 // cross product
 inline CUDA_HOSTDEV float3 cross(float3 a, float3 b)
 { 

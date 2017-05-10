@@ -23,7 +23,10 @@ CudaCloth cuda_cloth(NUM_CLOTH_POINTS);
 int main(int argc, char **argv)
 {
     cuda_cloth.init();
-    cuda_cloth.simulate_timestep();
-    cuda_cloth.get_particles();
+    for(int i = 0; i < 10; i++)
+    {
+      cuda_cloth.simulate_timestep();
+      cuda_cloth.get_particles();
+    }
     return 0;
 }
