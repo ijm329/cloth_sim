@@ -144,7 +144,7 @@ void cuda_cloth::render_particles()
 {
     glEnableClientState(GL_VERTEX_ARRAY);
     //glEnableClientState(GL_COLOR_ARRAY);
-    glColor3f(0.0, 1.0, 1.0);
+    glColor3f(0.0, 0.5, 1.0);
     glVertexPointer(3, GL_FLOAT, sizeof(float3), &(host_pos_array[0].x));
     //glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
     glDrawArrays(GL_POINTS, 0, num_particles);
@@ -828,76 +828,80 @@ void cuda_cloth::satisfy_constraints()
 {
     int threads_per_block = 1024;
 
-    //case 1
-    // o----o   o----o
-    // |\  /|   |\  /|
-    // | \/ |   | \/ |
-    // | /\ |   | /\ |
-    // |/  \|   |/  \|
-    // o----o   o----o
-    // o----o   o----o
-    // |\  /|   |\  /|
-    // | \/ |   | \/ |
-    // | /\ |   | /\ |
-    // |/  \|   |/  \|
-    // o----o   o----o
-    int width = num_particles_width;
-    int height = num_particles_height;
-    int num_constraint_groups = (width/2) * (height/2);
-    int num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-    satisfy_case1_kernel<<<num_blocks, threads_per_block>>>();
-    cudaDeviceSynchronize();
+    for(int i = 0; i < NUM_CONSTRAINT_ITERS; i++)
+    {
+        //case 1
+        // o----o   o----o
+        // |\  /|   |\  /|
+        // | \/ |   | \/ |
+        // | /\ |   | /\ |
+        // |/  \|   |/  \|
+        // o----o   o----o
+        // o----o   o----o
+        // |\  /|   |\  /|
+        // | \/ |   | \/ |
+        // | /\ |   | /\ |
+        // |/  \|   |/  \|
+        // o----o   o----o
+        int width = num_particles_width;
+        int height = num_particles_height;
+        int num_constraint_groups = (width/2) * (height/2);
+        int num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+        satisfy_case1_kernel<<<num_blocks, threads_per_block>>>();
+        cudaDeviceSynchronize();
 
-    //case 2
-    // o   o   o   o   o
-    //      \ /     \ / 
-    //       \       \
-    //      / \     / \
-    // o   o   o   o   o
-    // o   o   o   o   o
-    //      \ /     \ / 
-    //       \       \
-    //      / \     / \
-    // o   o   o   o   o
-    num_constraint_groups = (height/2) * ((width-1)/2);
-    num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-    satisfy_case2_kernel<<<num_blocks, threads_per_block>>>();
-    cudaDeviceSynchronize();
+        //case 2
+        // o   o   o   o   o
+        //      \ /     \ / 
+        //       \       \
+        //      / \     / \
+        // o   o   o   o   o
+        // o   o   o   o   o
+        //      \ /     \ / 
+        //       \       \
+        //      / \     / \
+        // o   o   o   o   o
+        num_constraint_groups = (height/2) * ((width-1)/2);
+        num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+        satisfy_case2_kernel<<<num_blocks, threads_per_block>>>();
+        cudaDeviceSynchronize();
 
-    //case 3
-    // o  o  o  o  o  o
-    //
-    // o  o  o  o  o  o
-    //  \/    \/    \/
-    //  /\    /\    /\
-    // o  o  o  o  o  o
-    // o  o  o  o  o  o
-    //  \/    \/    \/
-    //  /\    /\    /\
-    // o  o  o  o  o  o
-    num_constraint_groups = (width/2) * ((height-1)/2);
-    num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-    satisfy_case3_kernel<<<num_blocks, threads_per_block>>>();
-    cudaDeviceSynchronize();
+        //case 3
+        // o  o  o  o  o  o
+        //
+        // o  o  o  o  o  o
+        //  \/    \/    \/
+        //  /\    /\    /\
+        // o  o  o  o  o  o
+        // o  o  o  o  o  o
+        //  \/    \/    \/
+        //  /\    /\    /\
+        // o  o  o  o  o  o
+        num_constraint_groups = (width/2) * ((height-1)/2);
+        num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+        satisfy_case3_kernel<<<num_blocks, threads_per_block>>>();
+        cudaDeviceSynchronize();
 
-    //case4
-    // o  o--o  o--o  o
-    //
-    // o  o--o  o--o  o
-    // |  |\/|  |\/|  |
-    // |  |/\|  |/\|  |
-    // o  o--o  o--o  o
-    //
-    // o  o--o  o--o  o
-    // |  |\/|  |\/|  |
-    // |  |/\|  |/\|  |
-    // o  o--o  o--o  o
-    // 
-    // o  o--o  o--o  o
-    num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) + (height-2);
-    num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-    satisfy_case4_kernel<<<num_blocks, threads_per_block>>>();
-    cudaDeviceSynchronize();
+        //case4
+        // o  o--o  o--o  o
+        //
+        // o  o--o  o--o  o
+        // |  |\/|  |\/|  |
+        // |  |/\|  |/\|  |
+        // o  o--o  o--o  o
+        //
+        // o  o--o  o--o  o
+        // |  |\/|  |\/|  |
+        // |  |/\|  |/\|  |
+        // o  o--o  o--o  o
+        // 
+        // o  o--o  o--o  o
+        num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) +   
+                                (height-2);
+        num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+        satisfy_case4_kernel<<<num_blocks, threads_per_block>>>();
+        cudaDeviceSynchronize();
+    }
 }
 
 void cuda_cloth::simulate_timestep()

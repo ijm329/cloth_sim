@@ -499,11 +499,12 @@ while true do
   local apply_start = os.clock()
   particles:foreach(apply_forces)
   local apply_end = os.clock()
-  print(string.format("apply_forces: %f\n", apply_end - apply_start))
+  print("---------------------------------------")
+  print(string.format("Apply Forces : %.3f", apply_end - apply_start))
   local update_start = os.clock()
   particles:foreach(update_pos)
   local update_end = os.clock()
-  print(string.format("update_pos: %f\n", update_end - update_start))
+  print(string.format("Update Position : %.3f", update_end - update_start))
   particles:foreach(reset_fixed_particles)
 
   local constraint_start = os.clock()
@@ -527,8 +528,9 @@ while true do
     particles:foreach(apply_new_pos)
   end 
   local constraint_end = os.clock()
-  print(string.format("constraint_pos: %f\n", constraint_end - constraint_start))
-
+  print(string.format("Satisfy Constraints : %.3f",
+                            constraint_end - constraint_start))
+  print("---------------------------------------")
   vdb.vbegin()
   vdb.frame()
     particles:foreach(visualize_particles)
