@@ -624,5 +624,6 @@ void Cloth::simulate_timestep()
     }
     apply_forces();
     update_positions();
+    reset_fixed_particles();
     //satisfy_constraints();
 }
