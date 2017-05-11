@@ -189,9 +189,9 @@ __device__ float3 compute_wind_force(float3 p1, float3 p2, float3 p3)
     return wind_force; 
 }
 
-__device__ float3 compute_spring_force(float3 p1_pos, float3 p2_pos,
-                                       float3 p1_prev_pos, 
+__device__ float3 compute_spring_force(float3 p2_pos, float3 p1_pos,
                                        float3 p2_prev_pos, 
+                                       float3 p1_prev_pos, 
                                        float len, spring_type_t type)
 {
     float3 dir = p2_pos - p1_pos;
@@ -201,6 +201,7 @@ __device__ float3 compute_spring_force(float3 p1_pos, float3 p2_pos,
     float3 disp = (spr_const * dir) - (spr_const * rest);
     float3 vel = get_velocity(p2_pos, p2_prev_pos) - get_velocity(p1_pos, 
                                                                p1_prev_pos);
+
     float3 force = -disp - (damp_const * vel);
     return force;
 }
@@ -235,7 +236,8 @@ __device__ __inline__ void load_particle_pos_data(
         //with those contained in the thread block.
         blk_particles[sblk_row][sblk_col].pos = dev_pos_array[idx];
         blk_particles[sblk_row][sblk_col].prev_pos = dev_prev_pos_array[idx];
-
+        
+        
         //for border particles, load the immediate top, left, bottom, and right
         //load tops so only if you're in the top row of your block
 
@@ -442,7 +444,7 @@ __device__ __inline__ float3 compute_particle_forces(
     float3 tot_force = make_float3(0.0f, -9.81f * PARTICLE_MASS, 0.0f);
     float struct_len = cuda_cloth_params.struct_spring_len;
     float shear_len = cuda_cloth_params.shear_spring_len;
-    float flex_len = 2.0 * struct_len;
+    float flex_len = 2.0f * struct_len;
     
     //row in col within the entire grid of threads
     int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -467,8 +469,8 @@ __device__ __inline__ float3 compute_particle_forces(
             tot_force += compute_wind_force(top_right.pos, top.pos, curr.pos);
             particle_pos_data_t right = blk_particles[sblk_row][sblk_col + 1];
             tot_force += compute_wind_force(right.pos, top_right.pos, curr.pos);
-            //tot_force += compute_spring_force(curr.pos, top_right.pos, 
-            //             curr.prev_pos, top_right.prev_pos, shear_len, SHEAR);
+            tot_force += compute_spring_force(curr.pos, top_right.pos, 
+                         curr.prev_pos, top_right.prev_pos, shear_len, SHEAR);
         }
         if(row != height - 1 && col != width - 1)
         {
@@ -477,9 +479,9 @@ __device__ __inline__ float3 compute_particle_forces(
             tot_force += compute_wind_force(right.pos, curr.pos, bottom.pos);
             particle_pos_data_t bottom_right =
                 blk_particles[sblk_row + 1][sblk_col + 1];
-            //tot_force += compute_spring_force(curr.pos, bottom_right.pos, 
-            //             curr.prev_pos, bottom_right.prev_pos, shear_len, 
-            //             SHEAR);
+            tot_force += compute_spring_force(curr.pos, bottom_right.pos, 
+                         curr.prev_pos, bottom_right.prev_pos, shear_len, 
+                         SHEAR);
         }
         if(row != height - 1 && col != 0)
         {
@@ -491,8 +493,8 @@ __device__ __inline__ float3 compute_particle_forces(
             particle_pos_data_t left = blk_particles[sblk_row][sblk_col - 1];
             tot_force += compute_wind_force(curr.pos, left.pos, 
                                             bottom_left.pos);
-            //tot_force += compute_spring_force(curr.pos, bottom_left.pos, 
-            //            curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
+            tot_force += compute_spring_force(curr.pos, bottom_left.pos, 
+                        curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
         }
         if(row != 0 && col != 0)
         {
@@ -501,12 +503,12 @@ __device__ __inline__ float3 compute_particle_forces(
             tot_force += compute_wind_force(curr.pos, top.pos, left.pos);
             particle_pos_data_t top_left =
                         blk_particles[sblk_row - 1][sblk_col - 1];
-            //tot_force += compute_spring_force(curr.pos, top_left.pos, 
-            //            curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
+            tot_force += compute_spring_force(curr.pos, top_left.pos, 
+                        curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
         }
 
         //structural forces
-       /* if(col != 0)
+        if(col != 0)
             tot_force += compute_spring_force(curr.pos,
               blk_particles[sblk_row][sblk_col - 1].pos, curr.prev_pos,
               blk_particles[sblk_row][sblk_col - 1].prev_pos, struct_len, STRUCTURAL);
@@ -535,7 +537,7 @@ __device__ __inline__ float3 compute_particle_forces(
                     curr.prev_pos, *(f_left[PREV_POS_INDEX]), flex_len, FLEXION);
         if(f_right[POS_INDEX]) 
             tot_force += compute_spring_force(curr.pos, *(f_right[POS_INDEX]),
-                    curr.prev_pos, *(f_right[PREV_POS_INDEX]), flex_len, FLEXION); */
+                    curr.prev_pos, *(f_right[PREV_POS_INDEX]), flex_len, FLEXION);
     }
     return tot_force;
 }
@@ -627,13 +629,13 @@ void CudaCloth::satisfy_constraints()
 
 void CudaCloth::simulate_timestep()
 {
-    static int num = 0;
+    /*static int num = 0;
     printf("iter %d \n", num++);
     for(int i = 0; i < num_particles; i++)
     {
         printf("CUDA Pos: %d ==> (%f, %f, %f)\n", i, host_pos_array[i].x,
                                 host_pos_array[i].y, host_pos_array[i].z);
-    }
+    }*/
     apply_forces();
     update_positions();
     satisfy_constraints();
