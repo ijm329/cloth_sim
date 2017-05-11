@@ -617,14 +617,32 @@ void Cloth::update_positions()
 
 void Cloth::simulate_timestep()
 {
+    double reset_start = CycleTimer::currentSeconds();
     reset_normals();
+    double reset_end = CycleTimer::currentSeconds();
     //for(int i = 0; i < get_num_particles(); i++)
     //{
     //    vector3D curr = particles[i].pos;
     //    //printf("CPU POS: %d ==> (%f, %f, %f)\n", i, curr.x, curr.y, curr.z);
     //}
+
+    double forces_start = CycleTimer::currentSeconds();
     apply_forces();
+    double forces_end = CycleTimer::currentSeconds();
     update_positions();
-    reset_fixed_particles();
-    //satisfy_constraints();
+
+    double update_start = CycleTimer::currentSeconds();
+    update_positions();
+    double update_end = CycleTimer::currentSeconds();
+
+    double constraint_start = CycleTimer::currentSeconds();
+    satisfy_constraints();
+    double constraint_end = CycleTimer::currentSeconds();
+
+    printf("----------------------------------------\n");
+    printf("Reset Normals : %.3f ms \n", reset_end - reset_start);
+    printf("Apply Forces : %.3f ms \n", forces_end-forces_start);
+    printf("Update Positions : %.3f ms \n", update_end-update_start);
+    printf("Satisfy Constraints : %.3f ms \n", constraint_end-constraint_start);
+    printf("----------------------------------------\n");
 }

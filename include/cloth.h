@@ -14,6 +14,7 @@
 #include <GL/glut.h>
 #endif
 #include "vector3D.h"
+#include "cycleTimer.h"
 
 //Simulation Constants
 #define TIME_STEP 0.00314 //in seconds

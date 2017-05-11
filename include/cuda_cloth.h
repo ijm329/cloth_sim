@@ -27,6 +27,7 @@
 #include <helper_cuda_gl.h>      // helper functions for CUDA/GL interop
 
 #include <vector_types.h>
+#include "cycleTimer.h"
 #include "float3.h"
 
 //Simulation Constants
@@ -92,7 +93,7 @@ typedef enum
     FLEXION
 } spring_type_t;
 
-class CudaCloth
+class cuda_cloth
 {
     private:
         int num_particles_width;
@@ -111,9 +112,9 @@ class CudaCloth
         void render_particles();
 
     public:
-        CudaCloth(int n = 2);
-        CudaCloth(int w, int h);
-        ~CudaCloth();
+        cuda_cloth(int n = 2);
+        cuda_cloth(int w, int h);
+        ~cuda_cloth();
 
         void init();
         void simulate_timestep();

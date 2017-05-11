@@ -15,9 +15,9 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 128
+#define NUM_CLOTH_POINTS 32
 
-CudaCloth cuda_cloth(NUM_CLOTH_POINTS);
+cuda_cloth cuda_cloth(NUM_CLOTH_POINTS);
 
 //mouse controls
 int mouse_old_x, mouse_old_y;

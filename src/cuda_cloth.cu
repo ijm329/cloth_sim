@@ -22,7 +22,7 @@ typedef struct
 
 __constant__ cloth_constants cuda_cloth_params;
 
-CudaCloth::CudaCloth(int n)
+cuda_cloth::cuda_cloth(int n)
 {
     num_particles_width = n;
     num_particles_height = n;
@@ -38,7 +38,7 @@ CudaCloth::CudaCloth(int n)
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
 }
 
-CudaCloth::CudaCloth(int w, int h)
+cuda_cloth::cuda_cloth(int w, int h)
 {
     num_particles_width = w;
     num_particles_height = h;
@@ -53,7 +53,7 @@ CudaCloth::CudaCloth(int w, int h)
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
 }
 
-CudaCloth::~CudaCloth()
+cuda_cloth::~cuda_cloth()
 {
     free(host_pos_array);
     cudaFree(dev_pos_array);
@@ -62,7 +62,7 @@ CudaCloth::~CudaCloth()
 }
 
 // Get particles back from the device for rendering 
-void CudaCloth::get_particles()
+void cuda_cloth::get_particles()
 {
     GPU_ERR_CHK(cudaMemcpy(host_pos_array, dev_pos_array,
                 sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
@@ -90,7 +90,7 @@ __inline__ float get_spring_len(int width, int height, spring_type_t type)
 
 // initializes cloth positions and allocates memory region in the device and 
 // copies the particle buffer into that region
-void CudaCloth::init()
+void cuda_cloth::init()
 {
     for(int i = 0; i < num_particles_height; i++)
     {
@@ -127,7 +127,7 @@ void CudaCloth::init()
                                   sizeof(cloth_constants)));
 }
 
-void CudaCloth::render(float rotate_x, float rotate_y, float translate_z)
+void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
     //transform the cloth's position in the world space based on 
     //camera parameters
@@ -140,7 +140,7 @@ void CudaCloth::render(float rotate_x, float rotate_y, float translate_z)
     render_particles();
 }
 
-void CudaCloth::render_particles()
+void cuda_cloth::render_particles()
 {
     glEnableClientState(GL_VERTEX_ARRAY);
     //glEnableClientState(GL_COLOR_ARRAY);
@@ -570,13 +570,13 @@ __global__ void apply_forces_kernel()
       dev_force_array[idx] = tot_force;
 }
 
-void CudaCloth::apply_forces()
+void cuda_cloth::apply_forces()
 {
   //setup invocaiton for application of all forces
-  dim3 threadsPerBlock(TPB_X, TPB_Y, 1);
-  dim3 numBlocks(UP_DIV(num_particles_width, TPB_X), 
+  dim3 threads_per_block(TPB_X, TPB_Y, 1);
+  dim3 num_blocks(UP_DIV(num_particles_width, TPB_X), 
                  UP_DIV(num_particles_height, TPB_Y), 1);
-  apply_forces_kernel<<<numBlocks, threadsPerBlock>>>();
+  apply_forces_kernel<<<num_blocks, threads_per_block>>>();
   cudaDeviceSynchronize();
 }
 
@@ -614,20 +614,293 @@ __global__ void update_positions_kernel()
     }
 }
 
-void CudaCloth::update_positions()
+void cuda_cloth::update_positions()
 {
-    dim3 threadsPerBlock(TPB_X, TPB_Y, 1);
-    dim3 numBlocks(UP_DIV(num_particles_width, TPB_X), 
+    dim3 threads_per_block(TPB_X, TPB_Y, 1);
+    dim3 num_blocks(UP_DIV(num_particles_width, TPB_X), 
                    UP_DIV(num_particles_height, TPB_Y), 1);
-    update_positions_kernel<<<numBlocks, threadsPerBlock>>>();
+    update_positions_kernel<<<num_blocks, threads_per_block>>>();
     cudaDeviceSynchronize();
 }
 
-void CudaCloth::satisfy_constraints()
+__device__ __inline__ bool is_fixed(int row, int col)
 {
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+    assert((row>=0) && (row<height) && (col>=0) && (col<width));
+    return (((row == 0) && (col == 0)) || (row == 0) && (col == width-1));
 }
 
-void CudaCloth::simulate_timestep()
+__device__ __inline__ void satisfy_constraint(float3 *pos1, float3 *pos2, float rest_len,
+                                              bool p1_fixed, bool p2_fixed)
+{
+    float3 diff = *pos2 - *pos1;
+    float new_length = length(diff);
+    if(new_length > (STRETCH_CRITICAL*rest_len))
+    {
+        float move_dist = (new_length - (STRETCH_CRITICAL*rest_len))/2.0;
+        if(!p1_fixed && !p2_fixed)
+        {
+            *(pos1) = *(pos1) + move_dist * normalize(diff);
+            *(pos2) = *(pos2) - move_dist * normalize(diff);
+        }
+        else if(!p1_fixed)
+            *(pos1) = *(pos1) + 2*move_dist * normalize(diff);
+        else if(!p2_fixed)
+            *(pos2) = *(pos2) - 2*move_dist * normalize(diff);
+    }
+}
+__device__ __inline__ void satisfy_six_constraints(int row, int col)
+{
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+    float struct_len = cuda_cloth_params.struct_spring_len;
+    float shear_len = cuda_cloth_params.shear_spring_len;
+    float3 *pos_array = cuda_cloth_params.pos_array;
+
+    assert((row <= (height-2)) && (col <= (width-2)));
+    float3 *curr = &pos_array[row*width+col];
+    float3 *right = &pos_array[row*width+col+1];
+    float3 *bottom = &pos_array[(row+1)*width+col];
+    float3 *bottom_right = &pos_array[(row+1)*width+col+1];
+
+    bool curr_fixed = is_fixed(row, col);
+    bool right_fixed = is_fixed(row, col+1);
+    bool bot_fixed = is_fixed(row+1, col);
+    bool bot_right_fixed = is_fixed(row+1, col+1);
+
+    satisfy_constraint(curr, right, struct_len, curr_fixed, right_fixed);
+    satisfy_constraint(right, bottom_right, struct_len, right_fixed, bot_fixed);
+    satisfy_constraint(bottom_right, bottom, struct_len, bot_right_fixed, bot_fixed);
+    satisfy_constraint(bottom, curr, struct_len, bot_fixed, curr_fixed);
+    satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, bot_right_fixed);
+    satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
+}
+
+__global__ void satisfy_case1_kernel()
+{
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+    int num_constraint_groups = (width/2) * (height/2);
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx < num_constraint_groups)
+    {
+        int cg_row = idx / (width/2);
+        int cg_col = idx % (width/2);
+        int top_left_row = cg_row*2;
+        int top_left_col = cg_col*2;
+        satisfy_six_constraints(top_left_row, top_left_col);
+    }
+}
+
+__global__ void satisfy_case2_kernel()
+{
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+    int num_constraint_groups = (height/2) * ((width-1)/2);
+    int len = (width-1)/2;
+    float3 *pos_array = cuda_cloth_params.pos_array;
+    float shear_len = cuda_cloth_params.shear_spring_len;
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx < num_constraint_groups)
+    {
+        int cg_row = idx / len;
+        int cg_col = idx % len;
+        int row = cg_row*2;
+        int col = cg_col*2+1;
+
+        float3 *curr = &pos_array[row*width+col];
+        float3 *right = &pos_array[row*width+col+1];
+        float3 *bottom = &pos_array[(row+1)*width+col];
+        float3 *bottom_right = &pos_array[(row+1)*width+col+1];
+
+        bool curr_fixed = is_fixed(row, col);
+        bool right_fixed = is_fixed(row, col+1);
+        bool bot_fixed = is_fixed(row+1, col);
+        bool bot_right_fixed = is_fixed(row+1, col+1);
+
+        satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, bot_right_fixed);
+        satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
+    }
+}
+
+__global__ void satisfy_case3_kernel()
+{
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+    int num_constraint_groups = (width/2) * ((height-1)/2);
+    int len = (width/2);
+    float3 *pos_array = cuda_cloth_params.pos_array;
+    float shear_len = cuda_cloth_params.shear_spring_len;
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx < num_constraint_groups)
+    {
+        int cg_row = idx / len;
+        int cg_col = idx % len;
+        int row = cg_row*2+1;
+        int col = cg_col*2;
+
+        float3 *curr = &pos_array[row*width+col];
+        float3 *right = &pos_array[row*width+col+1];
+        float3 *bottom = &pos_array[(row+1)*width+col];
+        float3 *bottom_right = &pos_array[(row+1)*width+col+1];
+
+        bool curr_fixed = is_fixed(row, col);
+        bool right_fixed = is_fixed(row, col+1);
+        bool bot_fixed = is_fixed(row+1, col);
+        bool bot_right_fixed = is_fixed(row+1, col+1);
+
+        satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, bot_right_fixed);
+        satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
+    }
+}
+
+__global__ void satisfy_case4_kernel()
+{
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+    int num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) + (height-2);
+    float3 *pos_array = cuda_cloth_params.pos_array;
+    float struct_len = cuda_cloth_params.struct_spring_len;
+
+    int num_inner_square_constraints = ((width-2)/2) * ((height-2)/2);
+    int num_row_border_constraints = (width-2);
+    int num_col_border_constraints = (width-2);
+    
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx < num_constraint_groups)
+    {
+        //subcase 1 inner square
+        if(idx < (num_inner_square_constraints))
+        {
+            int len = (width-2)/2;
+            int cg_row = idx / len;
+            int cg_col = idx % len;
+            int row = cg_row*2+1;
+            int col = cg_col*2+1;
+            satisfy_six_constraints(row, col);
+        }
+        //subcase 2 border rows
+        else if(idx < (num_inner_square_constraints + num_row_border_constraints))
+        {
+            int new_idx = idx - num_inner_square_constraints;
+            int len = num_row_border_constraints/2;
+            int row = 0;
+            if(new_idx > len)
+                row = height-1;
+            else
+                row = 0;
+            int col = new_idx % len;
+
+            float3 *curr = &pos_array[row*width+col];
+            float3 *right = &pos_array[row*width+col+1];
+
+            bool curr_fixed = is_fixed(row, col);
+            bool right_fixed = is_fixed(row, col+1);
+            satisfy_constraint(curr, right, struct_len, curr_fixed, right_fixed);
+        }
+        //subcase 3 border columns
+        else
+        {
+            int new_idx = idx - num_inner_square_constraints-num_row_border_constraints;
+            int len = num_col_border_constraints/2;
+            int col = 0;
+            if(new_idx > len)
+                col = width-1;
+            else
+                col = 0;
+            int row = new_idx % len;
+
+            float3 *curr = &pos_array[row*width+col];
+            float3 *bot = &pos_array[(row+1)*width+col];
+
+            bool curr_fixed = is_fixed(row, col);
+            bool bot_fixed = is_fixed(row+1, col);
+            satisfy_constraint(curr, bot, struct_len, curr_fixed, bot_fixed);
+        }
+    }
+}
+
+void cuda_cloth::satisfy_constraints()
+{
+    int threads_per_block = 1024;
+
+    //case 1
+    // o----o   o----o
+    // |\  /|   |\  /|
+    // | \/ |   | \/ |
+    // | /\ |   | /\ |
+    // |/  \|   |/  \|
+    // o----o   o----o
+    // o----o   o----o
+    // |\  /|   |\  /|
+    // | \/ |   | \/ |
+    // | /\ |   | /\ |
+    // |/  \|   |/  \|
+    // o----o   o----o
+    int width = num_particles_width;
+    int height = num_particles_height;
+    int num_constraint_groups = (width/2) * (height/2);
+    int num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+    satisfy_case1_kernel<<<num_blocks, threads_per_block>>>();
+    cudaDeviceSynchronize();
+
+    //case 2
+    // o   o   o   o   o
+    //      \ /     \ / 
+    //       \       \
+    //      / \     / \
+    // o   o   o   o   o
+    // o   o   o   o   o
+    //      \ /     \ / 
+    //       \       \
+    //      / \     / \
+    // o   o   o   o   o
+    num_constraint_groups = (height/2) * ((width-1)/2);
+    num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+    satisfy_case2_kernel<<<num_blocks, threads_per_block>>>();
+    cudaDeviceSynchronize();
+
+    //case 3
+    // o  o  o  o  o  o
+    //
+    // o  o  o  o  o  o
+    //  \/    \/    \/
+    //  /\    /\    /\
+    // o  o  o  o  o  o
+    // o  o  o  o  o  o
+    //  \/    \/    \/
+    //  /\    /\    /\
+    // o  o  o  o  o  o
+    num_constraint_groups = (width/2) * ((height-1)/2);
+    num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+    satisfy_case3_kernel<<<num_blocks, threads_per_block>>>();
+    cudaDeviceSynchronize();
+
+    //case4
+    // o  o--o  o--o  o
+    //
+    // o  o--o  o--o  o
+    // |  |\/|  |\/|  |
+    // |  |/\|  |/\|  |
+    // o  o--o  o--o  o
+    //
+    // o  o--o  o--o  o
+    // |  |\/|  |\/|  |
+    // |  |/\|  |/\|  |
+    // o  o--o  o--o  o
+    // 
+    // o  o--o  o--o  o
+    num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) + (height-2);
+    num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
+    satisfy_case4_kernel<<<num_blocks, threads_per_block>>>();
+    cudaDeviceSynchronize();
+}
+
+void cuda_cloth::simulate_timestep()
 {
     /*static int num = 0;
     printf("iter %d \n", num++);
@@ -636,8 +909,26 @@ void CudaCloth::simulate_timestep()
         printf("CUDA Pos: %d ==> (%f, %f, %f)\n", i, host_pos_array[i].x,
                                 host_pos_array[i].y, host_pos_array[i].z);
     }*/
+    double forces_start = CycleTimer::currentSeconds();
     apply_forces();
+    double forces_end = CycleTimer::currentSeconds();
+
+    double update_start = CycleTimer::currentSeconds();
     update_positions();
+    double update_end = CycleTimer::currentSeconds();
+
+    double constraint_start = CycleTimer::currentSeconds();
     satisfy_constraints();
+    double constraint_end = CycleTimer::currentSeconds();
+
+    double transfer_start = CycleTimer::currentSeconds();
     get_particles();
+    double transfer_end = CycleTimer::currentSeconds();
+
+    printf("----------------------------------------\n");
+    printf("Apply Forces : %.3f ms \n", forces_end-forces_start);
+    printf("Update Positions : %.3f ms \n", update_end-update_start);
+    printf("Satisfy Constraints : %.3f ms \n", constraint_end-constraint_start);
+    printf("Transfer to CPU : %.3f ms \n", transfer_end-transfer_start);
+    printf("----------------------------------------\n");
 }
