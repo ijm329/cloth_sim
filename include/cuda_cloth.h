@@ -83,6 +83,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
+#define UP_DIV(a, b) (((a) + (b) - 1) / b)
+
 typedef enum
 {
     STRUCTURAL,
