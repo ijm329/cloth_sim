@@ -550,7 +550,7 @@ void Cloth::reset_fixed_particles()
 
 void Cloth::satisfy_constraints()
 {
-    int num_shear = 0 * (num_particles_width - 1) * (num_particles_height - 1);
+    int num_shear = 2 * (num_particles_width - 1) * (num_particles_height - 1);
     int num_structural = num_particles_height * (num_particles_width - 1) + 
                          num_particles_width * (num_particles_height - 1);
     for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
@@ -637,9 +637,8 @@ void Cloth::simulate_timestep()
     double constraint_end = CycleTimer::currentSeconds();
 
     printf("----------------------------------------\n");
-    printf("Reset Normals : %.3f ms \n", reset_end - reset_start);
-    printf("Apply Forces : %.3f ms \n", forces_end-forces_start);
-    printf("Update Positions : %.3f ms \n", update_end-update_start);
-    printf("Satisfy Constraints : %.3f ms \n", constraint_end-constraint_start);
-    printf("----------------------------------------\n");
+    printf("Reset Normals : %.3f s \n", reset_end - reset_start);
+    printf("Apply Forces : %.3f s \n", forces_end-forces_start);
+    printf("Update Positions : %.3f s \n", update_end-update_start);
+    printf("Satisfy Constraints : %.3f s \n", constraint_end-constraint_start);
 }

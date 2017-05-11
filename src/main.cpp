@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 64
+#define NUM_CLOTH_POINTS 128
 
 Cloth cloth(NUM_CLOTH_POINTS);
 
@@ -31,9 +31,18 @@ void render_scene()
     
     start_time = CycleTimer::currentSeconds();
 
+    double simulate_start = CycleTimer::currentSeconds();
     cloth.simulate_timestep();
+    double simulate_end = CycleTimer::currentSeconds();
+
+    double render_start = CycleTimer::currentSeconds();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     cloth.render(rotate_x, rotate_y, translate_z);
+    double render_end = CycleTimer::currentSeconds();
+
+    printf("Total Simulation : %.3f s \n", simulate_end - simulate_start);
+    printf("Render : %.3f s \n", render_end - render_start);
+    printf("----------------------------------------\n");
 
     //glMatrixMode(GL_MODELVIEW);
     //glLoadIdentity();
