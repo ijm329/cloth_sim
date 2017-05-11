@@ -550,36 +550,35 @@ void Cloth::reset_fixed_particles()
 
 void Cloth::satisfy_constraints()
 {
-    reset_fixed_particles();
-    //int num_shear = 2 * (num_particles_width - 1) * (num_particles_height - 1);
-    //int num_structural = num_particles_height * (num_particles_width - 1) + 
-    //                     num_particles_width * (num_particles_height - 1);
-    //for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
-    //{
-    //    for(int i = 0; i < num_shear + num_structural; i++)
-    //    {
-    //        particle *p1 = springs[i].left;
-    //        particle *p2 = springs[i].right;
-    //        vector3D diff = (p2->pos) - (p1->pos);
+    int num_shear = 0 * (num_particles_width - 1) * (num_particles_height - 1);
+    int num_structural = num_particles_height * (num_particles_width - 1) + 
+                         num_particles_width * (num_particles_height - 1);
+    for(int k = 0; k < NUM_CONSTRAINT_ITERS; k++)
+    {
+        for(int i = 0; i < num_shear + num_structural; i++)
+        {
+            particle *p1 = springs[i].left;
+            particle *p2 = springs[i].right;
+            vector3D diff = (p2->pos) - (p1->pos);
 
-    //        float new_length = diff.norm();
-    //        if(new_length > (STRETCH_CRITICAL*springs[i].rest_length))
-    //        {
-    //            float move_dist = (new_length - 
-    //                    (STRETCH_CRITICAL*springs[i].rest_length))/2.0;
-    //            if(!p1->fixed && !p2->fixed)
-    //            {
-    //                p1->pos += move_dist * diff.unit();
-    //                p2->pos -= move_dist * diff.unit();
-    //            }
-    //            else if(!p1->fixed)
-    //                p1->pos += 2*move_dist * diff.unit();
-    //            else if(!p2->fixed)
-    //                p2->pos -= 2*move_dist * diff.unit();
-    //        }
-    //    }
-    //    reset_fixed_particles();
-    //}
+            float new_length = diff.norm();
+            if(new_length > (STRETCH_CRITICAL*springs[i].rest_length))
+            {
+                float move_dist = (new_length - 
+                        (STRETCH_CRITICAL*springs[i].rest_length))/2.0;
+                if(!p1->fixed && !p2->fixed)
+                {
+                    p1->pos += move_dist * diff.unit();
+                    p2->pos -= move_dist * diff.unit();
+                }
+                else if(!p1->fixed)
+                    p1->pos += 2*move_dist * diff.unit();
+                else if(!p2->fixed)
+                    p2->pos -= 2*move_dist * diff.unit();
+            }
+        }
+        reset_fixed_particles();
+    }
     //        //std::cout<<diff_ratio<<std::endl;
     //        if(diff_ratio > DIFF_CRITICAL)
     //        {
@@ -596,7 +595,6 @@ void Cloth::satisfy_constraints()
     //    }
     //    reset_fixed_particles();
     //}
-
 }
 
 void Cloth::update_positions()
@@ -629,7 +627,6 @@ void Cloth::simulate_timestep()
     double forces_start = CycleTimer::currentSeconds();
     apply_forces();
     double forces_end = CycleTimer::currentSeconds();
-    update_positions();
 
     double update_start = CycleTimer::currentSeconds();
     update_positions();
