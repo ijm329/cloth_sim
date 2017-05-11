@@ -92,21 +92,17 @@ typedef enum
     FLEXION
 } spring_type_t;
 
-typedef struct particle
-{
-    float3 pos;
-    float3 prev_pos;
-    float3 force;
-} particle;
-
 class CudaCloth
 {
     private:
         int num_particles_width;
         int num_particles_height;
         int num_particles;
-        particle *particles;
-        particle *dev_particles;
+
+        float3 *dev_pos_array;
+        float3 *dev_prev_pos_array;
+        float3 *dev_force_array;
+        float3 *host_pos_array;
 
         void update_positions();
         void apply_forces();
