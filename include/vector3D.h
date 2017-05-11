@@ -80,18 +80,18 @@ typedef struct vector3D
 
     float norm() const
     {
-        return sqrt(x*x + y*y + z*z);
+        return sqrtf(x*x + y*y + z*z);
     }
 
     vector3D unit() const
     {
-        float norm_inv = 1.0f / sqrt(x*x + y*y + z*z);
+        float norm_inv = 1.0f / sqrtf(x*x + y*y + z*z);
         return vector3D(norm_inv * x, norm_inv * y, norm_inv * z);
     }
 
     void normalize()
     {
-        float norm_inv = 1.0f / sqrt(x*x + y*y + z*z);
+        float norm_inv = 1.0f / sqrtf(x*x + y*y + z*z);
         x *= norm_inv;
         y *= norm_inv;
         z *= norm_inv;

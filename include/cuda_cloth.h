@@ -104,16 +104,14 @@ class CudaCloth
         int num_particles_height;
         int num_particles;
         particle *particles;
+        particle *dev_particles;
 
         void update_positions();
         void apply_forces();
         void satisfy_constraints();
-        void render_springs(float rotate_x, float rotate_y, float translate_z);
         void reset_fixed_particles();
         void reset_normals();
         vector3D get_normal_vec(vector3D p1, vector3D p2, vector3D p3);
-        void draw_triangle(particle *p1, particle *p2, particle *p3);
-        void draw_square(int curr_idx, int right_idx, int lower_idx, int diag_idx);
 
     public:
         CudaCloth(int n = 2);
