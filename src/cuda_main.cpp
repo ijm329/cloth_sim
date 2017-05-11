@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 3
+#define NUM_CLOTH_POINTS 40
 
 CudaCloth cuda_cloth(NUM_CLOTH_POINTS);
 
@@ -181,7 +181,7 @@ void glInit(int argc, char **argv)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_MULTISAMPLE);
-    glPointSize(2.0);
+    glPointSize(5.0);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);

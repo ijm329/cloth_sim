@@ -324,7 +324,8 @@ __device__ __inline__ void load_particle_pos_data(
             {
                 int index = (row - 1) * width + (col + 1);
                 blk_particles[0][shared_mem_x - 1].pos = dev_pos_array[index];
-                blk_particles[0][shared_mem_x - 1].prev_pos = dev_prev_pos_array[index];
+                blk_particles[0][shared_mem_x - 1].prev_pos = 
+                                                    dev_prev_pos_array[index];
             }
             else
                 blk_particles[0][shared_mem_x - 1].pos = make_float3(MIN_BOUND-1,
@@ -338,7 +339,8 @@ __device__ __inline__ void load_particle_pos_data(
             {
                 int index = (row + 1) * width + (col - 1);
                 blk_particles[shared_mem_y - 1][0].pos = dev_pos_array[index];
-                blk_particles[shared_mem_y - 1][0].prev_pos = dev_prev_pos_array[index];
+                blk_particles[shared_mem_y - 1][0].prev_pos = 
+                                                    dev_prev_pos_array[index];
             }
             else
                 blk_particles[shared_mem_y - 1][0].pos = make_float3(MIN_BOUND-1,
@@ -370,7 +372,8 @@ __device__ __inline__ void load_particle_pos_data(
             if((sblk_row - 2) >= 0)
             {
                 f_top[POS_INDEX] = &blk_particles[sblk_row-2][sblk_col].pos;
-                f_top[PREV_POS_INDEX] = &blk_particles[sblk_row-2][sblk_col].prev_pos;
+                f_top[PREV_POS_INDEX] = &(
+                        blk_particles[sblk_row-2][sblk_col].prev_pos);
             }
             else
             {
@@ -385,7 +388,8 @@ __device__ __inline__ void load_particle_pos_data(
             if((sblk_row + 2) < shared_mem_y)
             {
                 f_btm[POS_INDEX] = &blk_particles[sblk_row + 2][sblk_col].pos;
-                f_btm[PREV_POS_INDEX] = &blk_particles[sblk_row + 2][sblk_col].prev_pos;
+                f_btm[PREV_POS_INDEX] = &(
+                        blk_particles[sblk_row + 2][sblk_col].prev_pos);
             }
             else
             {
@@ -400,7 +404,8 @@ __device__ __inline__ void load_particle_pos_data(
             if((sblk_col - 2) >= 0)
             {
                 f_left[POS_INDEX] = &blk_particles[sblk_row][sblk_col - 2].pos;
-                f_left[PREV_POS_INDEX] = &blk_particles[sblk_row][sblk_col - 2].prev_pos;
+                f_left[PREV_POS_INDEX] = &(
+                        blk_particles[sblk_row][sblk_col - 2].prev_pos);
             }
             else
             {
@@ -415,7 +420,8 @@ __device__ __inline__ void load_particle_pos_data(
             if((sblk_col + 2) < shared_mem_x)
             {
                 f_right[POS_INDEX] = &blk_particles[sblk_row][sblk_col + 2].pos;
-                f_right[PREV_POS_INDEX] = &blk_particles[sblk_row][sblk_col + 2].prev_pos;
+                f_right[PREV_POS_INDEX] = &(
+                        blk_particles[sblk_row][sblk_col + 2].prev_pos);
             }
             else
             {
@@ -456,12 +462,13 @@ __device__ __inline__ float3 compute_particle_forces(
         if(row != 0 && col != width - 1)
         {
             particle_pos_data_t top = blk_particles[sblk_row - 1][sblk_col];
-            particle_pos_data_t top_right = blk_particles[sblk_row-1][sblk_col+1];
+            particle_pos_data_t top_right = 
+                blk_particles[sblk_row-1][sblk_col+1];
             tot_force += compute_wind_force(top_right.pos, top.pos, curr.pos);
             particle_pos_data_t right = blk_particles[sblk_row][sblk_col + 1];
             tot_force += compute_wind_force(right.pos, top_right.pos, curr.pos);
-            //tot_force += compute_spring_force(curr.pos, top_right.pos, curr.prev_pos,
-            //                                  top_right.prev_pos, shear_len, SHEAR);
+            //tot_force += compute_spring_force(curr.pos, top_right.pos, 
+            //             curr.prev_pos, top_right.prev_pos, shear_len, SHEAR);
         }
         if(row != height - 1 && col != width - 1)
         {
@@ -470,19 +477,22 @@ __device__ __inline__ float3 compute_particle_forces(
             tot_force += compute_wind_force(right.pos, curr.pos, bottom.pos);
             particle_pos_data_t bottom_right =
                 blk_particles[sblk_row + 1][sblk_col + 1];
-            //tot_force += compute_spring_force(curr.pos, bottom_right.pos, curr.prev_pos,
-            //                                  bottom_right.prev_pos, shear_len, SHEAR);
+            //tot_force += compute_spring_force(curr.pos, bottom_right.pos, 
+            //             curr.prev_pos, bottom_right.prev_pos, shear_len, 
+            //             SHEAR);
         }
         if(row != height - 1 && col != 0)
         {
             particle_pos_data_t bottom = blk_particles[sblk_row + 1][sblk_col];
             particle_pos_data_t bottom_left =
                         blk_particles[sblk_row + 1][sblk_col - 1];
-            tot_force += compute_wind_force(bottom.pos, curr.pos, bottom_left.pos);
+            tot_force += compute_wind_force(bottom.pos, curr.pos, 
+                                            bottom_left.pos);
             particle_pos_data_t left = blk_particles[sblk_row][sblk_col - 1];
-            tot_force += compute_wind_force(curr.pos, left.pos, bottom_left.pos);
+            tot_force += compute_wind_force(curr.pos, left.pos, 
+                                            bottom_left.pos);
             //tot_force += compute_spring_force(curr.pos, bottom_left.pos, 
-            //                    curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
+            //            curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
         }
         if(row != 0 && col != 0)
         {
@@ -492,7 +502,7 @@ __device__ __inline__ float3 compute_particle_forces(
             particle_pos_data_t top_left =
                         blk_particles[sblk_row - 1][sblk_col - 1];
             //tot_force += compute_spring_force(curr.pos, top_left.pos, 
-            //                    curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
+            //            curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
         }
 
         //structural forces
@@ -535,7 +545,10 @@ __global__ void apply_forces_kernel()
     //row in col within the entire grid of threads
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
-    int idx = (row * cuda_cloth_params.num_particles_width) + col;
+    int width = cuda_cloth_params.num_particles_width;
+    int height = cuda_cloth_params.num_particles_height;
+
+    int idx = (row * width) + col;
     float3 *dev_force_array = cuda_cloth_params.force_array;
 
     //create a 2D array of shared memory for particles that will be used by 
@@ -551,7 +564,7 @@ __global__ void apply_forces_kernel()
     __syncthreads();
     float3 tot_force = compute_particle_forces(blk_particles, f_top, f_btm,
                                                f_left, f_right);
-    if(row < cuda_cloth_params.num_particles_height && col < cuda_cloth_params.num_particles_width)
+    if((row < height) && (col < width))
       dev_force_array[idx] = tot_force;
 }
 
@@ -614,13 +627,13 @@ void CudaCloth::satisfy_constraints()
 
 void CudaCloth::simulate_timestep()
 {
-    static int iter = 0;
+    static int num = 0;
+    printf("iter %d \n", num++);
     for(int i = 0; i < num_particles; i++)
     {
-        printf("iter: %d CUDA Pos: %d ==> (%f, %f, %f)\n", iter, i, host_pos_array[i].x,
+        printf("CUDA Pos: %d ==> (%f, %f, %f)\n", i, host_pos_array[i].x,
                                 host_pos_array[i].y, host_pos_array[i].z);
     }
-    iter++;
     apply_forces();
     update_positions();
     satisfy_constraints();

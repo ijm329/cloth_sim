@@ -68,8 +68,8 @@
 #endif
 
 //cuda constants 
-#define TPB_X 2
-#define TPB_Y 2
+#define TPB_X 32
+#define TPB_Y 32
 #define TPB (TPB_X * TPB_Y) 
 
 //error checking 
