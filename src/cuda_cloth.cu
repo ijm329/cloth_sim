@@ -145,7 +145,7 @@ void CudaCloth::render_particles()
     glEnableClientState(GL_VERTEX_ARRAY);
     //glEnableClientState(GL_COLOR_ARRAY);
     glColor3f(0.0, 1.0, 1.0);
-    glVertexPointer(3, GL_FLOAT, sizeof(particle), &(particles[0].pos.x));
+    glVertexPointer(3, GL_FLOAT, sizeof(float3), &(host_pos_array[0].x));
     //glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
     glDrawArrays(GL_POINTS, 0, num_particles);
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -190,7 +190,8 @@ __device__ float3 compute_wind_force(float3 p1, float3 p2, float3 p3)
 }
 
 __device__ float3 compute_spring_force(float3 p1_pos, float3 p2_pos,
-                                       float3 p1_prev_pos, float3 p2_prev_pos,
+                                       float3 p1_prev_pos, 
+                                       float3 p2_prev_pos, 
                                        float len, spring_type_t type)
 {
     float3 dir = p2_pos - p1_pos;
@@ -198,7 +199,8 @@ __device__ float3 compute_spring_force(float3 p1_pos, float3 p2_pos,
     float spr_const = get_spring_const(type);
     float damp_const = get_spring_damp(type);
     float3 disp = (spr_const * dir) - (spr_const * rest);
-    float3 vel = get_velocity(p2_pos, p2_prev_pos) - get_velocity(p1_pos, p1_prev_pos);
+    float3 vel = get_velocity(p2_pos, p2_prev_pos) - get_velocity(p1_pos, 
+                                                               p1_prev_pos);
     float3 force = -disp - (damp_const * vel);
     return force;
 }
@@ -458,18 +460,18 @@ __device__ __inline__ float3 compute_particle_forces(
             tot_force += compute_wind_force(top_right.pos, top.pos, curr.pos);
             particle_pos_data_t right = blk_particles[sblk_row][sblk_col + 1];
             tot_force += compute_wind_force(right.pos, top_right.pos, curr.pos);
-            tot_force += compute_spring_force(curr.pos, top_right.pos, curr.prev_pos,
-                                              top_right.prev_pos, shear_len, SHEAR);
+    //        tot_force += compute_spring_force(curr.pos, top_right.pos, curr.prev_pos,
+    //                                          top_right.prev_pos, shear_len, SHEAR);
         }
         if(row != height - 1 && col != width - 1)
         {
             particle_pos_data_t bottom = blk_particles[sblk_row + 1][sblk_col];
             particle_pos_data_t right = blk_particles[sblk_row][sblk_col + 1];
             tot_force += compute_wind_force(right.pos, curr.pos, bottom.pos);
-            particle_pos_data_t bottom_right =
-                blk_particles[sblk_row + 1][sblk_col + 1];
-            tot_force += compute_spring_force(curr.pos, bottom_right.pos, curr.prev_pos,
-                                              bottom_right.prev_pos, shear_len, SHEAR);
+    //        particle_pos_data_t bottom_right =
+    //            blk_particles[sblk_row + 1][sblk_col + 1];
+    //        tot_force += compute_spring_force(curr.pos, bottom_right.pos, curr.prev_pos,
+    //                                          bottom_right.prev_pos, shear_len, SHEAR);
         }
         if(row != height - 1 && col != 0)
         {
@@ -479,51 +481,51 @@ __device__ __inline__ float3 compute_particle_forces(
             tot_force += compute_wind_force(bottom.pos, curr.pos, bottom_left.pos);
             particle_pos_data_t left = blk_particles[sblk_row][sblk_col - 1];
             tot_force += compute_wind_force(curr.pos, left.pos, bottom_left.pos);
-            tot_force += compute_spring_force(curr.pos, bottom_left.pos, 
-                                curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
+    //        tot_force += compute_spring_force(curr.pos, bottom_left.pos, 
+    //                            curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
         }
         if(row != 0 && col != 0)
         {
             particle_pos_data_t top = blk_particles[sblk_row - 1][sblk_col];
             particle_pos_data_t left = blk_particles[sblk_row][sblk_col - 1];
             tot_force += compute_wind_force(curr.pos, top.pos, left.pos);
-            particle_pos_data_t top_left =
-                        blk_particles[sblk_row - 1][sblk_col - 1];
-            tot_force += compute_spring_force(curr.pos, top_left.pos, 
-                                curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
+    //        particle_pos_data_t top_left =
+    //                    blk_particles[sblk_row - 1][sblk_col - 1];
+    //        tot_force += compute_spring_force(curr.pos, top_left.pos, 
+    //                            curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
         }
 
-        //structural forces
-        if(col != 0)
-            tot_force += compute_spring_force(curr.pos,
-              blk_particles[sblk_row][sblk_col - 1].pos, curr.prev_pos,
-              blk_particles[sblk_row][sblk_col - 1].prev_pos, struct_len, STRUCTURAL);
-        if(col != width - 1)
-            tot_force += compute_spring_force(curr.pos,
-              blk_particles[sblk_row][sblk_col + 1].pos, curr.prev_pos,
-              blk_particles[sblk_row][sblk_col + 1].prev_pos, struct_len, STRUCTURAL);
-        if(row != 0)
-            tot_force += compute_spring_force(curr.pos,
-              blk_particles[sblk_row - 1][sblk_col].pos, curr.prev_pos,
-              blk_particles[sblk_row - 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
-        if(row != height - 1)
-            tot_force += compute_spring_force(curr.pos,
-              blk_particles[sblk_row + 1][sblk_col].pos, curr.prev_pos,
-              blk_particles[sblk_row + 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
+    //    //structural forces
+    //    if(col != 0)
+    //        tot_force += compute_spring_force(curr.pos,
+    //          blk_particles[sblk_row][sblk_col - 1].pos, curr.prev_pos,
+    //          blk_particles[sblk_row][sblk_col - 1].prev_pos, struct_len, STRUCTURAL);
+    //    if(col != width - 1)
+    //        tot_force += compute_spring_force(curr.pos,
+    //          blk_particles[sblk_row][sblk_col + 1].pos, curr.prev_pos,
+    //          blk_particles[sblk_row][sblk_col + 1].prev_pos, struct_len, STRUCTURAL);
+    //    if(row != 0)
+    //        tot_force += compute_spring_force(curr.pos,
+    //          blk_particles[sblk_row - 1][sblk_col].pos, curr.prev_pos,
+    //          blk_particles[sblk_row - 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
+    //    if(row != height - 1)
+    //        tot_force += compute_spring_force(curr.pos,
+    //          blk_particles[sblk_row + 1][sblk_col].pos, curr.prev_pos,
+    //          blk_particles[sblk_row + 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
 
-        //flexion forces 
-        if(f_top[POS_INDEX]) 
-            tot_force += compute_spring_force(curr.pos, *(f_top[POS_INDEX]), 
-                    curr.prev_pos, *(f_top[PREV_POS_INDEX]), flex_len, FLEXION);
-        if(f_btm[POS_INDEX]) 
-            tot_force += compute_spring_force(curr.pos, *(f_btm[POS_INDEX]),
-                    curr.prev_pos, *(f_btm[PREV_POS_INDEX]), flex_len, FLEXION);
-        if(f_left[POS_INDEX]) 
-            tot_force += compute_spring_force(curr.pos, *(f_left[POS_INDEX]),
-                    curr.prev_pos, *(f_left[PREV_POS_INDEX]), flex_len, FLEXION);
-        if(f_right[POS_INDEX]) 
-            tot_force += compute_spring_force(curr.pos, *(f_right[POS_INDEX]),
-                    curr.prev_pos, *(f_right[PREV_POS_INDEX]), flex_len, FLEXION);
+    //    //flexion forces 
+    //    if(f_top[POS_INDEX]) 
+    //        tot_force += compute_spring_force(curr.pos, *(f_top[POS_INDEX]), 
+    //                curr.prev_pos, *(f_top[PREV_POS_INDEX]), flex_len, FLEXION);
+    //    if(f_btm[POS_INDEX]) 
+    //        tot_force += compute_spring_force(curr.pos, *(f_btm[POS_INDEX]),
+    //                curr.prev_pos, *(f_btm[PREV_POS_INDEX]), flex_len, FLEXION);
+    //    if(f_left[POS_INDEX]) 
+    //        tot_force += compute_spring_force(curr.pos, *(f_left[POS_INDEX]),
+    //                curr.prev_pos, *(f_left[PREV_POS_INDEX]), flex_len, FLEXION);
+    //    if(f_right[POS_INDEX]) 
+    //        tot_force += compute_spring_force(curr.pos, *(f_right[POS_INDEX]),
+    //                curr.prev_pos, *(f_right[PREV_POS_INDEX]), flex_len, FLEXION);
     }
     return tot_force;
 }
@@ -573,6 +575,7 @@ __global__ void update_positions_kernel()
     if(row < height && col < width)
     {
         int i = row * width + col;
+     
         float3 curr_pos = cuda_cloth_params.pos_array[i];
         float3 curr_prev_pos = cuda_cloth_params.prev_pos_array[i];
         float3 curr_force = cuda_cloth_params.force_array[i];
@@ -582,6 +585,16 @@ __global__ void update_positions_kernel()
         curr_prev_pos = temp;
         cuda_cloth_params.pos_array[i] = curr_pos;
         cuda_cloth_params.prev_pos_array[i] = curr_prev_pos;
+        
+        //fixed particles
+        if((row == 0 && col == 0) || (row == 0 && col == width - 1))
+        {
+          float x = (float)col/width;
+          float  z = (float)row/height;
+          x = BOUND_LENGTH*x + MIN_BOUND;
+          z = BOUND_LENGTH*z + MIN_BOUND;
+          cuda_cloth_params.pos_array[i] = make_float3(x,1.0f,z);
+        }
     }
 }
 
