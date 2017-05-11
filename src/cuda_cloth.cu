@@ -189,9 +189,9 @@ __device__ float3 compute_wind_force(float3 p1, float3 p2, float3 p3)
     return wind_force; 
 }
 
-__device__ float3 compute_spring_force(float3 p2_pos, float3 p1_pos,
-                                       float3 p2_prev_pos, 
+__device__ float3 compute_spring_force(float3 p1_pos, float3 p2_pos,
                                        float3 p1_prev_pos, 
+                                       float3 p2_prev_pos, 
                                        float len, spring_type_t type)
 {
     float3 dir = p2_pos - p1_pos;
@@ -203,7 +203,7 @@ __device__ float3 compute_spring_force(float3 p2_pos, float3 p1_pos,
                                                                p1_prev_pos);
 
     float3 force = -disp - (damp_const * vel);
-    return force;
+    return -force;
 }
 
 __device__ __inline__ void load_particle_pos_data(
