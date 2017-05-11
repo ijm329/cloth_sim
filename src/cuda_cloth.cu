@@ -526,7 +526,7 @@ __device__ __inline__ float3 compute_particle_forces(
               blk_particles[sblk_row + 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
 
         //flexion forces 
-        if(f_top[POS_INDEX]) 
+        /*if(f_top[POS_INDEX]) 
             tot_force += compute_spring_force(curr.pos, *(f_top[POS_INDEX]), 
                     curr.prev_pos, *(f_top[PREV_POS_INDEX]), flex_len, FLEXION);
         if(f_btm[POS_INDEX]) 
