@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 6
+#define NUM_CLOTH_POINTS 64
 
 Cloth cloth(NUM_CLOTH_POINTS);
 

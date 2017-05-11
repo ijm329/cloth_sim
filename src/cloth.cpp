@@ -618,11 +618,11 @@ void Cloth::update_positions()
 void Cloth::simulate_timestep()
 {
     reset_normals();
-    for(int i = 0; i < get_num_particles(); i++)
-    {
-        vector3D curr = particles[i].pos;
-        printf("CPU POS: %d ==> (%f, %f, %f)\n", i, curr.x, curr.y, curr.z);
-    }
+    //for(int i = 0; i < get_num_particles(); i++)
+    //{
+    //    vector3D curr = particles[i].pos;
+    //    //printf("CPU POS: %d ==> (%f, %f, %f)\n", i, curr.x, curr.y, curr.z);
+    //}
     apply_forces();
     update_positions();
     reset_fixed_particles();
