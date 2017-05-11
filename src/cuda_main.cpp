@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 3
+#define NUM_CLOTH_POINTS 40
 
 CudaCloth cuda_cloth(NUM_CLOTH_POINTS);
 
@@ -189,20 +189,18 @@ void glInit(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-    //glInit(argc, argv);
+    glInit(argc, argv);
     cuda_cloth.init();
 
-    for(int i = 0; i < 100; i++)
-        cuda_cloth.simulate_timestep();
     //register GLUT callbacks
-    //glutDisplayFunc(render_scene);
-    //glutReshapeFunc(resize_window);
-    //glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
-    //glutKeyboardFunc(process_keys);
-    //glutMouseFunc(mouse_handler);
-    //glutMotionFunc(move_camera);
-    ////enter GLUT event processing cycle
-    //glutMainLoop();
+    glutDisplayFunc(render_scene);
+    glutReshapeFunc(resize_window);
+    glutTimerFunc(REFRESH_INTERVAL, timer_handler, 0);
+    glutKeyboardFunc(process_keys);
+    glutMouseFunc(mouse_handler);
+    glutMotionFunc(move_camera);
+    //enter GLUT event processing cycle
+    glutMainLoop();
 
     return 0;
 }

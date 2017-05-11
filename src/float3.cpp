@@ -6,7 +6,7 @@ std::ostream& operator<<(std::ostream& os, const float3 &v)
     return os;
 }
 
-float3 operator*(const float& s, const float3& v)
+vector3D operator*(const float& s, const float3& v)
 {
-    return float3(s*v.x, s*v.y, s*v.z);
+    return vector3D(s*v.x, s*v.y, s*v.z);
 }
