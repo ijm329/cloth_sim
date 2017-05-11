@@ -144,7 +144,7 @@ void cuda_cloth::render_particles()
 {
     glEnableClientState(GL_VERTEX_ARRAY);
     //glEnableClientState(GL_COLOR_ARRAY);
-    glColor3f(0.0, 0.5, 1.0);
+    glColor3f(0.0, 1.0, 0.5);
     glVertexPointer(3, GL_FLOAT, sizeof(float3), &(host_pos_array[0].x));
     //glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
     glDrawArrays(GL_POINTS, 0, num_particles);
