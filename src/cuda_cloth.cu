@@ -113,6 +113,31 @@ void CudaCloth::init()
                                   sizeof(cloth_constants)));
 }
 
+void CudaCloth::render(float rotate_x, float rotate_y, float translate_z)
+{
+    //transform the cloth's position in the world space based on 
+    //camera parameters
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glTranslatef(0.0, 0.0, translate_z);
+    glRotatef(rotate_x, 1.0, 0.0, 0.0);
+    glRotatef(rotate_y, 0.0, 1.0, 0.0);
+
+    render_particles();
+}
+
+void CudaCloth::render_particles()
+{
+    glEnableClientState(GL_VERTEX_ARRAY);
+    //glEnableClientState(GL_COLOR_ARRAY);
+    glColor3f(0.0, 1.0, 1.0);
+    glVertexPointer(3, GL_FLOAT, sizeof(particle), &(particles[0].pos.x));
+    //glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
+    glDrawArrays(GL_POINTS, 0, num_particles);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    //glDisableClientState(GL_COLOR_ARRAY);
+}
+
 __device__ __inline__ float3 get_velocity(particle_pos_data_t p)
 {
     return (p.pos - p.prev_pos) * (1.0f / TIME_STEP);
@@ -523,4 +548,5 @@ void CudaCloth::simulate_timestep()
     apply_forces();
     update_positions();
     satisfy_constraints();
+    get_particles();
 }

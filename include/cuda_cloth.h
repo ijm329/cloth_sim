@@ -112,8 +112,7 @@ class CudaCloth
         void apply_forces();
         void satisfy_constraints();
         void reset_fixed_particles();
-        void reset_normals();
-        vector3D get_normal_vec(vector3D p1, vector3D p2, vector3D p3);
+        void render_particles();
 
     public:
         CudaCloth(int n = 2);
