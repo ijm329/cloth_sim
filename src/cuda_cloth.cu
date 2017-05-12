@@ -12,6 +12,7 @@ struct cloth_constants
     float3 *pos_array;
     float3 *prev_pos_array;
     float3 *force_array;
+    float3 *normal_array;
 };
 
 typedef struct
@@ -28,7 +29,8 @@ cuda_cloth::cuda_cloth(int n)
     num_particles_height = n;
     num_particles = num_particles_width * num_particles_height;
     host_pos_array = (float3 *)malloc(sizeof(float3) * num_particles);
-    if((host_pos_array == NULL))
+    host_normal_array = (float3 *)malloc(sizeof(float3) * num_particles);
+    if((host_pos_array == NULL) || (host_normal_array == NULL))
     {
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
@@ -36,6 +38,7 @@ cuda_cloth::cuda_cloth(int n)
     GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_prev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
+    GPU_ERR_CHK(cudaMalloc(&dev_normal_array, sizeof(float3) * num_particles));
 }
 
 cuda_cloth::cuda_cloth(int w, int h)
@@ -43,7 +46,8 @@ cuda_cloth::cuda_cloth(int w, int h)
     num_particles_width = w;
     num_particles_height = h;
     host_pos_array = (float3 *)malloc(sizeof(float3) * num_particles);
-    if((host_pos_array == NULL))
+    host_normal_array = (float3 *)malloc(sizeof(float3) * num_particles);
+    if((host_pos_array == NULL) || (host_normal_array == NULL))
     {
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
@@ -51,20 +55,25 @@ cuda_cloth::cuda_cloth(int w, int h)
     GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_prev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
+    GPU_ERR_CHK(cudaMalloc(&dev_normal_array, sizeof(float3) * num_particles));
 }
 
 cuda_cloth::~cuda_cloth()
 {
     free(host_pos_array);
+    free(host_normal_array);
     cudaFree(dev_pos_array);
     cudaFree(dev_prev_pos_array);
     cudaFree(dev_force_array);
+    cudaFree(dev_normal_array);
 }
 
 // Get particles back from the device for rendering 
 void cuda_cloth::get_particles()
 {
     GPU_ERR_CHK(cudaMemcpy(host_pos_array, dev_pos_array,
+                sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
+    GPU_ERR_CHK(cudaMemcpy(host_normal_array, dev_normal_array,
                 sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
     /*
      * for(int i = 0; i < num_particles; i++)
@@ -103,6 +112,7 @@ void cuda_cloth::init()
             z = BOUND_LENGTH*z + MIN_BOUND;
 
             host_pos_array[i*num_particles_width + j] = {x, 1.0f, z};
+            host_normal_array[i*num_particles_width + j] = {0.0f, 0.0f, 0.0f};
         }
     }
     //copy initialized data to device
@@ -111,6 +121,7 @@ void cuda_cloth::init()
     GPU_ERR_CHK(cudaMemcpy(dev_prev_pos_array, dev_pos_array,
                 sizeof(float3) * num_particles, cudaMemcpyDeviceToDevice));
     GPU_ERR_CHK(cudaMemset(dev_force_array, 0, sizeof(float3) * num_particles));
+    GPU_ERR_CHK(cudaMemset(dev_normal_array, 0, sizeof(float3) * num_particles));
 
     //set up cloth simulation parameters in read only memory
     cloth_constants params;
@@ -118,6 +129,7 @@ void cuda_cloth::init()
     params.num_particles_height = num_particles_height;
     params.pos_array = dev_pos_array;
     params.prev_pos_array = dev_prev_pos_array;
+    params.normal_array = dev_normal_array;
     params.force_array = dev_force_array;
     params.struct_spring_len = get_spring_len(num_particles_width,
                                num_particles_height, STRUCTURAL);
@@ -137,19 +149,71 @@ void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
     glRotatef(rotate_x, 1.0, 0.0, 0.0);
     glRotatef(rotate_y, 0.0, 1.0, 0.0);
 
-    render_particles();
+    glBegin(GL_TRIANGLES);
+
+    for(int j = 0; j < num_particles_height - 1; j++)
+    {
+        for(int i = 0; i < num_particles_width - 1; i++)
+        {
+            int curr_idx = j * num_particles_width + i;
+            int right_idx = curr_idx + 1;
+            int lower_idx = (j + 1) * num_particles_width + i;
+            int diag_idx = lower_idx + 1;
+
+            draw_square(curr_idx, right_idx, lower_idx, diag_idx);
+       }
+    }
+    glEnd();
 }
 
-void cuda_cloth::render_particles()
+void cuda_cloth::draw_triangle(float3 p1_pos, float3 p2_pos, float3 p3_pos,
+                               float3 p1_normal, float3 p2_normal, float3 p3_normal)
 {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    //glEnableClientState(GL_COLOR_ARRAY);
-    glColor3f(0.0, 1.0, 0.5);
-    glVertexPointer(3, GL_FLOAT, sizeof(float3), &(host_pos_array[0].x));
-    //glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
-    glDrawArrays(GL_POINTS, 0, num_particles);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    //glDisableClientState(GL_COLOR_ARRAY);
+    glNormal3fv(&p1_normal.x);
+    glVertex3fv(&p1_pos.x);
+    glNormal3fv(&p2_normal.x);
+    glVertex3fv(&p2_pos.x);
+    glNormal3fv(&p3_normal.x);
+    glVertex3fv(&p3_pos.x);
+}
+
+void cuda_cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
+                             int diag_idx)
+{
+    glColor3f(0.0f, 1.0f, 0.5f);
+    float3 curr_pos = host_pos_array[curr_idx];
+    float3 lower_pos = host_pos_array[lower_idx];
+    float3 right_pos = host_pos_array[right_idx];
+    float3 diag_pos = host_pos_array[diag_idx];
+
+    float3 curr_normal = host_normal_array[curr_idx];
+    float3 lower_normal = host_normal_array[lower_idx];
+    float3 right_normal = host_normal_array[right_idx];
+    float3 diag_normal = host_normal_array[diag_idx];
+
+    float3 mid_pos;
+    float3 mid_normal;
+    mid_pos = (curr_pos + diag_pos)/2.0;
+    mid_normal = curr_normal + lower_normal + right_normal + diag_normal;
+    mid_normal = normalize(mid_normal);
+
+    //triangle 1
+    draw_triangle(curr_pos, lower_pos, mid_pos, curr_normal, lower_normal, mid_normal);
+    //triangle 2
+    draw_triangle(lower_pos, diag_pos, mid_pos, lower_normal, diag_normal, mid_normal);
+    //triangle 3
+    draw_triangle(mid_pos, diag_pos, right_pos, mid_normal, diag_normal, right_normal);
+    //triangle 4
+    draw_triangle(curr_pos, mid_pos, right_pos, curr_normal, mid_normal, right_normal);
+
+    //glEnableClientState(GL_VERTEX_ARRAY);
+    ////glEnableClientState(GL_COLOR_ARRAY);
+    //glColor3f(0.0, 1.0, 0.5);
+    //glVertexPointer(3, GL_FLOAT, sizeof(float3), &(host_pos_array[0].x));
+    ////glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
+    //glDrawArrays(GL_POINTS, 0, num_particles);
+    //glDisableClientState(GL_VERTEX_ARRAY);
+    ////glDisableClientState(GL_COLOR_ARRAY);
 }
 
 __device__ __inline__ float3 get_velocity(float3 p_pos, float3 p_prev_pos)
@@ -177,13 +241,14 @@ __device__ __inline__ float get_spring_damp(spring_type_t type)
         return DAMPING_FLEXION;
 }
 
-__device__ float3 compute_wind_force(float3 p1, float3 p2, float3 p3)
+__device__ float3 compute_wind_force(float3 p1, float3 p2, float3 p3, float3 *p_norm)
 {
     float3 line1 = p2 - p3;
     float3 line2 = p3 - p1;
 
     //normal to the triangle
     float3 norm = cross(line1, line2);
+    *(p_norm) = *(p_norm) + norm;
     float3 wind = make_float3(WIND_X, WIND_Y, WIND_Z);
     float3 wind_force = norm * (dot(normalize(norm), wind));
     return wind_force; 
@@ -455,10 +520,13 @@ __device__ __inline__ float3 compute_particle_forces(
     int sblk_row = threadIdx.y + 1;
     int sblk_col = threadIdx.x + 1;
 
+    float3 particle_normal = make_float3(0.0f, 0.0f, 0.0f);
+
     //Now that all necessary particles have been loaded, compute wind forces
     //computing wind forces and spring forces
     if(row < height && col < width)
     {
+        int idx = row * width + col;
         //your row and col within the shared mem matrix
         particle_pos_data_t curr = blk_particles[sblk_row][sblk_col];
         if(row != 0 && col != width - 1)
@@ -466,9 +534,11 @@ __device__ __inline__ float3 compute_particle_forces(
             particle_pos_data_t top = blk_particles[sblk_row - 1][sblk_col];
             particle_pos_data_t top_right = 
                 blk_particles[sblk_row-1][sblk_col+1];
-            tot_force += compute_wind_force(top_right.pos, top.pos, curr.pos);
+            tot_force += compute_wind_force(top_right.pos, top.pos, curr.pos,
+                                            &particle_normal);
             particle_pos_data_t right = blk_particles[sblk_row][sblk_col + 1];
-            tot_force += compute_wind_force(right.pos, top_right.pos, curr.pos);
+            tot_force += compute_wind_force(right.pos, top_right.pos, curr.pos,
+                                            &particle_normal);
             tot_force += compute_spring_force(curr.pos, top_right.pos, 
                          curr.prev_pos, top_right.prev_pos, shear_len, SHEAR);
         }
@@ -476,7 +546,8 @@ __device__ __inline__ float3 compute_particle_forces(
         {
             particle_pos_data_t bottom = blk_particles[sblk_row + 1][sblk_col];
             particle_pos_data_t right = blk_particles[sblk_row][sblk_col + 1];
-            tot_force += compute_wind_force(right.pos, curr.pos, bottom.pos);
+            tot_force += compute_wind_force(right.pos, curr.pos, bottom.pos,
+                                            &particle_normal);
             particle_pos_data_t bottom_right =
                 blk_particles[sblk_row + 1][sblk_col + 1];
             tot_force += compute_spring_force(curr.pos, bottom_right.pos, 
@@ -489,10 +560,10 @@ __device__ __inline__ float3 compute_particle_forces(
             particle_pos_data_t bottom_left =
                         blk_particles[sblk_row + 1][sblk_col - 1];
             tot_force += compute_wind_force(bottom.pos, curr.pos, 
-                                            bottom_left.pos);
+                                            bottom_left.pos, &particle_normal);
             particle_pos_data_t left = blk_particles[sblk_row][sblk_col - 1];
             tot_force += compute_wind_force(curr.pos, left.pos, 
-                                            bottom_left.pos);
+                                            bottom_left.pos, &particle_normal);
             tot_force += compute_spring_force(curr.pos, bottom_left.pos, 
                         curr.prev_pos, bottom_left.prev_pos, shear_len, SHEAR);
         }
@@ -500,12 +571,16 @@ __device__ __inline__ float3 compute_particle_forces(
         {
             particle_pos_data_t top = blk_particles[sblk_row - 1][sblk_col];
             particle_pos_data_t left = blk_particles[sblk_row][sblk_col - 1];
-            tot_force += compute_wind_force(curr.pos, top.pos, left.pos);
+            tot_force += compute_wind_force(curr.pos, top.pos, left.pos,
+                                            &particle_normal);
             particle_pos_data_t top_left =
                         blk_particles[sblk_row - 1][sblk_col - 1];
             tot_force += compute_spring_force(curr.pos, top_left.pos, 
                         curr.prev_pos, top_left.prev_pos, shear_len, SHEAR);
         }
+
+        particle_normal = normalize(particle_normal);
+        cuda_cloth_params.normal_array[idx] = particle_normal;
 
         //structural forces
         if(col != 0)
