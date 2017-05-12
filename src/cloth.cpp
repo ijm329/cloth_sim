@@ -174,10 +174,6 @@ void Cloth::init()
             particles[i*num_particles_width + j].fixed = fixed;
             particles[i*num_particles_width + j].force = {0.0f, 0.0f, 0.0f};
             particles[i*num_particles_width + j].normal = {0.0f, 0.0f, 0.0f};
-            //particles[i*num_particles_width + j].vel = {0.0f, 0.0f, 0.0f};
-
-            //std::cout<<i*num_particles_width+j<<" : " <<
-            //particles[i*num_particles_width+j].pos<<std::endl;
         }
     }
 
@@ -247,13 +243,6 @@ void Cloth::init()
         }
     }
     ASSERT(spring_cnt == num_springs);
-
-    //create vbo
-    //glGenBuffers(1, &vbo);
-    //glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //unsigned size = get_num_particles() * sizeof(particle);
-    //glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Cloth::reset_normals()
@@ -286,27 +275,6 @@ void Cloth::render_particles(float rotate_x, float rotate_y, float translate_z)
     glDrawArrays(GL_POINTS, 0, num_particles);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
-
-    //glBegin(GL_POINTS);
-    //for(int i = 0; i < num_particles_height; i++)
-    //{
-    //    for(int j = 0; j < num_particles_width; j++)
-    //    {
-    //        glColor3fv(&(particles[i*num_particles_width+j].color.x));
-    //        glVertex3fv(&(particles[i*num_particles_width+j].pos.x));
-    //    }
-    //}
-    //glEnd();
-
-    //glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //glBufferSubData(GL_ARRAY_BUFFER, 0, num_particles * sizeof(particle), 
-    //                particles);
-    //glVertexPointer(3, GL_FLOAT, sizeof(particle), &particles[0]);
-
-    //glEnableClientState(GL_VERTEX_ARRAY);
-    //glColor3f(0.0f, 1.0f, 0.0f);
-    //glDrawArrays(GL_POINTS, 0, num_particles);
-    //glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 inline int Cloth::get_num_particles()
@@ -342,13 +310,6 @@ void Cloth::draw_triangle(particle *p1, particle *p2, particle *p3)
 
     glNormal3fv(&(p3->normal.x));
     glVertex3fv(&(p3->pos.x));
-
-     //vector3D point_arr[3];
-     //point_arr[0] = p1;
-     //point_arr[1] = p2;
-     //point_arr[2] = p3;
-     //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, point_arr);
-     //glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 void Cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
@@ -365,15 +326,10 @@ void Cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
     mid.pos = (curr->pos + diag->pos)/2.0;
     mid.normal = curr->normal + lower->normal + right->normal + diag->normal;
 
-    //triangle 1
     draw_triangle(curr, lower, &mid);
-    //triangle 2
     draw_triangle(lower, diag, &mid);
-    //triangle 3
     draw_triangle(&mid, diag, right);
-    //triangle 4
     draw_triangle(curr, &mid, right);
-
 }
 
 void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
@@ -397,6 +353,7 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     }
     glEnd(); */
     //glColor3f(0.0, 0.90, 0.93);
+
     glBegin(GL_TRIANGLES);
     for(int i = 0; i < num_particles_width - 1; i++)
     {
@@ -451,13 +408,6 @@ void Cloth::apply_spring_forces()
 
         vector3D spring_force = -springs[i].k*disp - springs[i].damping * vel;
 
-        //std::cout<<p1-&particles[0]<<" " <<rest<<disp<<vel<<dir<<dir*100<<rest<<rest*100<<std::endl;
-        //std::cout<<springs[i].spring_type<< " " <<p1-&particles[0]<<" "<<-spring_force<<std::endl;
-        //std::cout<<springs[i].spring_type<<" " <<p2-&particles[0]<<" "<<spring_force<<std::endl;
-
-        //if(springs[i].spring_type == FLEXION)
-        //    std::cout<<"*********"<<vel<<" " << rest<<" " << disp<<std::endl;
-
         p1->force += -spring_force;
         p2->force += spring_force;
     }
@@ -482,10 +432,6 @@ void Cloth::apply_wind_forces()
             vector3D lower = particles[lower_idx].pos;
             vector3D diagonal = particles[diag_idx].pos;
 
-            //std::cout << "(" << j << "," << i << ")" << " = "<<curr_idx<<std::endl;
-            //std::cout << "r: "<<right_idx << " "<<right <<std::endl;
-            //std::cout << "d: "<<lower_idx << " " <<lower <<std::endl;
-
             // make two triangles to complete a square 
             vector3D wind(WIND_X, WIND_Y, WIND_Z);
             vector3D norm1 = get_normal_vec(right, curr, lower);
@@ -504,26 +450,15 @@ void Cloth::apply_wind_forces()
             vector3D wind_force1 = norm1 * (norm1.unit().dot_product(wind));
             vector3D wind_force2 = norm2 * (norm2.unit().dot_product(wind));
             
-
-            //std::cout<<right_idx<<","<<curr_idx<<","<<lower_idx<<":"<<norm1<<" "<<wind_force1<<std::endl;
-
             //force 1
             particles[right_idx].force += wind_force1;
             particles[curr_idx].force += wind_force1;
             particles[lower_idx].force += wind_force1;
 
-            //if(curr_idx == 1 || right_idx == 1 || lower_idx == 1)
-            //    std::cout<<"adding " <<wind_force1<<" " << norm1<<std::endl;
-
             //force2
             particles[right_idx].force += wind_force2;
             particles[diag_idx].force += wind_force2;
             particles[lower_idx].force += wind_force2;
-
-            //std::cout<<right_idx<<","<<diag_idx<<","<<lower_idx<<":"<<norm2<<" "<<wind_force2<<std::endl;
-
-            //if(right_idx == 1 || diag_idx == 1 || lower_idx == 1)
-            //    std::cout<<"adding " <<wind_force2 << " " << norm2<<std::endl;
         }
     }
 }
@@ -579,22 +514,6 @@ void Cloth::satisfy_constraints()
         }
         reset_fixed_particles();
     }
-    //        //std::cout<<diff_ratio<<std::endl;
-    //        if(diff_ratio > DIFF_CRITICAL)
-    //        {
-    //            if(!p1->fixed && !p2->fixed)
-    //            {
-    //                p1->pos -= diff*0.5*diff_ratio;
-    //                p2->pos += diff*0.5*diff_ratio;
-    //            }
-    //            else if(!p1->fixed)
-    //                p1->pos -= diff*diff_ratio;
-    //            else if(!p2->fixed)
-    //                p2->pos += diff*diff_ratio;
-    //        }
-    //    }
-    //    reset_fixed_particles();
-    //}
 }
 
 void Cloth::update_positions()
@@ -604,7 +523,6 @@ void Cloth::update_positions()
     //std::cout<<"Forces " << std::endl;
     for(int i = 0; i < num_particles; i++)
     {
-        //std::cout<<i<<" " << particles[i].force << std::endl;
         vector3D temp(particles[i].pos);
         vector3D acc = particles[i].force/PARTICLE_MASS;
         particles[i].pos += (particles[i].pos - particles[i].prev_pos +
@@ -618,13 +536,6 @@ void Cloth::simulate_timestep()
     double reset_start = CycleTimer::currentSeconds();
     reset_normals();
     double reset_end = CycleTimer::currentSeconds();
-    /*static int j = 0;
-    printf("iter %d\n", j++);
-    for(int i = 0; i < get_num_particles(); i++)
-    {
-        vector3D curr = particles[i].pos;
-        printf("CPU POS: %d ==> (%f, %f, %f)\n", i, curr.x, curr.y, curr.z);
-    }*/
 
     double forces_start = CycleTimer::currentSeconds();
     apply_forces();

@@ -75,13 +75,6 @@ void cuda_cloth::get_particles()
                 sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
     GPU_ERR_CHK(cudaMemcpy(host_normal_array, dev_normal_array,
                 sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
-    /*
-     * for(int i = 0; i < num_particles; i++)
-     * {
-     *     printf("%d {%f, %f, %f}\n", i, particles[i].pos.x, particles[i].pos.y,
-     *                                 particles[i].pos.z);
-     * }
-     * */
 }
 
 __inline__ float get_spring_len(int width, int height, spring_type_t type)
@@ -167,7 +160,7 @@ void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
 }
 
 void cuda_cloth::draw_triangle(float3 p1_pos, float3 p2_pos, float3 p3_pos,
-                               float3 p1_normal, float3 p2_normal, float3 p3_normal)
+                        float3 p1_normal, float3 p2_normal, float3 p3_normal)
 {
     glNormal3fv(&p1_normal.x);
     glVertex3fv(&p1_pos.x);
@@ -197,14 +190,14 @@ void cuda_cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
     mid_normal = curr_normal + lower_normal + right_normal + diag_normal;
     mid_normal = normalize(mid_normal);
 
-    //triangle 1
-    draw_triangle(curr_pos, lower_pos, mid_pos, curr_normal, lower_normal, mid_normal);
-    //triangle 2
-    draw_triangle(lower_pos, diag_pos, mid_pos, lower_normal, diag_normal, mid_normal);
-    //triangle 3
-    draw_triangle(mid_pos, diag_pos, right_pos, mid_normal, diag_normal, right_normal);
-    //triangle 4
-    draw_triangle(curr_pos, mid_pos, right_pos, curr_normal, mid_normal, right_normal);
+    draw_triangle(curr_pos, lower_pos, mid_pos,
+                  curr_normal, lower_normal, mid_normal);
+    draw_triangle(lower_pos, diag_pos, mid_pos,
+                  lower_normal, diag_normal, mid_normal);
+    draw_triangle(mid_pos, diag_pos, right_pos,
+                  mid_normal, diag_normal, right_normal);
+    draw_triangle(curr_pos, mid_pos, right_pos,
+                  curr_normal, mid_normal, right_normal);
 
     //glEnableClientState(GL_VERTEX_ARRAY);
     ////glEnableClientState(GL_COLOR_ARRAY);
@@ -314,11 +307,12 @@ __device__ __inline__ void load_particle_pos_data(
             {
                 int index = (row - 1) * width + col;
                 blk_particles[0][sblk_col].pos = dev_pos_array[index];
-                blk_particles[0][sblk_col].prev_pos = dev_prev_pos_array[index];
+                blk_particles[0][sblk_col].prev_pos = 
+                                        dev_prev_pos_array[index];
             }
             else
-                blk_particles[0][sblk_col].pos = make_float3(MIN_BOUND-1,
-                                                MIN_BOUND-1, MIN_BOUND-1);
+                blk_particles[0][sblk_col].pos = make_float3(HUGE_VALF,
+                                                HUGE_VALF, HUGE_VALF);
         }
 
         //bottom particles
@@ -328,13 +322,14 @@ __device__ __inline__ void load_particle_pos_data(
             if(row != height - 1)
             {
                 int index = (row + 1) * width + col;
-                blk_particles[sblk_row + 1][sblk_col].pos = dev_pos_array[index];
+                blk_particles[sblk_row + 1][sblk_col].pos = 
+                                                    dev_pos_array[index];
                 blk_particles[sblk_row + 1][sblk_col].prev_pos =
-                                                        dev_prev_pos_array[index];
+                                                    dev_prev_pos_array[index];
             }
             else
                 blk_particles[sblk_row + 1][sblk_col].pos = make_float3(
-                                    MIN_BOUND-1, MIN_BOUND-1, MIN_BOUND-1);
+                                    HUGE_VALF, HUGE_VALF, HUGE_VALF);
         }
 
         //left particles
@@ -345,11 +340,12 @@ __device__ __inline__ void load_particle_pos_data(
             {
                 int index = idx-1;
                 blk_particles[sblk_row][0].pos = dev_pos_array[index];
-                blk_particles[sblk_row][0].prev_pos = dev_prev_pos_array[index];
+                blk_particles[sblk_row][0].prev_pos = 
+                                            dev_prev_pos_array[index];
             }
             else
-                blk_particles[sblk_row][0].pos = make_float3(MIN_BOUND-1,
-                                                MIN_BOUND-1, MIN_BOUND-1);
+                blk_particles[sblk_row][0].pos = make_float3(HUGE_VALF,
+                                                HUGE_VALF, HUGE_VALF);
         }
 
         //right particles
@@ -359,13 +355,14 @@ __device__ __inline__ void load_particle_pos_data(
             if(col != width - 1)
             {
                 int index = idx+1;
-                blk_particles[sblk_row][sblk_col + 1].pos = dev_pos_array[index];
+                blk_particles[sblk_row][sblk_col + 1].pos = 
+                                                    dev_pos_array[index];
                 blk_particles[sblk_row][sblk_col + 1].prev_pos =
-                                                        dev_prev_pos_array[index];
+                                                    dev_prev_pos_array[index];
             }
             else
                 blk_particles[sblk_row][sblk_col + 1].pos = make_float3(
-                                    MIN_BOUND-1, MIN_BOUND-1, MIN_BOUND-1);
+                                    HUGE_VALF, HUGE_VALF, HUGE_VALF);
         }
 
         //corners 
@@ -380,8 +377,8 @@ __device__ __inline__ void load_particle_pos_data(
                 blk_particles[0][0].prev_pos = dev_prev_pos_array[index];
             }
             else
-                blk_particles[0][0].pos = make_float3(MIN_BOUND-1, MIN_BOUND-1,
-                                                MIN_BOUND-1);
+                blk_particles[0][0].pos = make_float3(HUGE_VALF, 
+                        HUGE_VALF, HUGE_VALF);
         }
 
         //top right
@@ -395,8 +392,8 @@ __device__ __inline__ void load_particle_pos_data(
                                                     dev_prev_pos_array[index];
             }
             else
-                blk_particles[0][shared_mem_x - 1].pos = make_float3(MIN_BOUND-1,
-                                                        MIN_BOUND-1, MIN_BOUND-1);
+                blk_particles[0][shared_mem_x - 1].pos = make_float3(HUGE_VALF,
+                                                        HUGE_VALF, HUGE_VALF);
         }
 
         //bottom left
@@ -410,8 +407,8 @@ __device__ __inline__ void load_particle_pos_data(
                                                     dev_prev_pos_array[index];
             }
             else
-                blk_particles[shared_mem_y - 1][0].pos = make_float3(MIN_BOUND-1,
-                                                        MIN_BOUND-1, MIN_BOUND-1);
+                blk_particles[shared_mem_y - 1][0].pos = make_float3(HUGE_VALF,
+                                                        HUGE_VALF, HUGE_VALF);
         }
 
         //bottom right 
@@ -421,13 +418,13 @@ __device__ __inline__ void load_particle_pos_data(
             {
                 int index = (row + 1) * width + (col + 1);
                 blk_particles[shared_mem_y - 1][shared_mem_x - 1].pos =
-                                                            dev_pos_array[index];
+                                                        dev_pos_array[index];
                 blk_particles[shared_mem_y - 1][shared_mem_x - 1].prev_pos =
-                                                        dev_prev_pos_array[index];
+                                                    dev_prev_pos_array[index];
             }
             else 
                 blk_particles[shared_mem_y - 1][shared_mem_x - 1].pos =
-                            make_float3(MIN_BOUND-1, MIN_BOUND-1, MIN_BOUND-1);
+                            make_float3(HUGE_VALF, HUGE_VALF, HUGE_VALF);
         }
 
         //set the flexion springs
@@ -586,19 +583,23 @@ __device__ __inline__ float3 compute_particle_forces(
         if(col != 0)
             tot_force += compute_spring_force(curr.pos,
               blk_particles[sblk_row][sblk_col - 1].pos, curr.prev_pos,
-              blk_particles[sblk_row][sblk_col - 1].prev_pos, struct_len, STRUCTURAL);
+              blk_particles[sblk_row][sblk_col - 1].prev_pos, struct_len, 
+              STRUCTURAL);
         if(col != width - 1)
             tot_force += compute_spring_force(curr.pos,
               blk_particles[sblk_row][sblk_col + 1].pos, curr.prev_pos,
-              blk_particles[sblk_row][sblk_col + 1].prev_pos, struct_len, STRUCTURAL);
+              blk_particles[sblk_row][sblk_col + 1].prev_pos, struct_len, 
+              STRUCTURAL);
         if(row != 0)
             tot_force += compute_spring_force(curr.pos,
               blk_particles[sblk_row - 1][sblk_col].pos, curr.prev_pos,
-              blk_particles[sblk_row - 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
+              blk_particles[sblk_row - 1][sblk_col].prev_pos, struct_len, 
+              STRUCTURAL);
         if(row != height - 1)
             tot_force += compute_spring_force(curr.pos,
               blk_particles[sblk_row + 1][sblk_col].pos, curr.prev_pos,
-              blk_particles[sblk_row + 1][sblk_col].prev_pos, struct_len, STRUCTURAL);
+              blk_particles[sblk_row + 1][sblk_col].prev_pos, struct_len, 
+              STRUCTURAL);
 
         //flexion forces 
         if(f_top[POS_INDEX]) 
@@ -609,10 +610,10 @@ __device__ __inline__ float3 compute_particle_forces(
                     curr.prev_pos, *(f_btm[PREV_POS_INDEX]), flex_len, FLEXION);
         if(f_left[POS_INDEX]) 
             tot_force += compute_spring_force(curr.pos, *(f_left[POS_INDEX]),
-                    curr.prev_pos, *(f_left[PREV_POS_INDEX]), flex_len, FLEXION);
+                curr.prev_pos, *(f_left[PREV_POS_INDEX]), flex_len, FLEXION);
         if(f_right[POS_INDEX]) 
             tot_force += compute_spring_force(curr.pos, *(f_right[POS_INDEX]),
-                    curr.prev_pos, *(f_right[PREV_POS_INDEX]), flex_len, FLEXION);
+                curr.prev_pos, *(f_right[PREV_POS_INDEX]), flex_len, FLEXION);
     }
     return tot_force;
 }
@@ -706,8 +707,8 @@ __device__ __inline__ bool is_fixed(int row, int col)
     return (((row == 0) && (col == 0)) || (row == 0) && (col == width-1));
 }
 
-__device__ __inline__ void satisfy_constraint(float3 *pos1, float3 *pos2, float rest_len,
-                                              bool p1_fixed, bool p2_fixed)
+__device__ __inline__ void satisfy_constraint(float3 *pos1, float3 *pos2, 
+                            float rest_len, bool p1_fixed, bool p2_fixed)
 {
     float3 diff = *pos2 - *pos1;
     float new_length = length(diff);
@@ -746,9 +747,11 @@ __device__ __inline__ void satisfy_six_constraints(int row, int col)
 
     satisfy_constraint(curr, right, struct_len, curr_fixed, right_fixed);
     satisfy_constraint(right, bottom_right, struct_len, right_fixed, bot_fixed);
-    satisfy_constraint(bottom_right, bottom, struct_len, bot_right_fixed, bot_fixed);
+    satisfy_constraint(bottom_right, bottom, struct_len, bot_right_fixed, 
+                       bot_fixed);
     satisfy_constraint(bottom, curr, struct_len, bot_fixed, curr_fixed);
-    satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, bot_right_fixed);
+    satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, 
+                       bot_right_fixed);
     satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
 }
 
@@ -796,7 +799,8 @@ __global__ void satisfy_case2_kernel()
         bool bot_fixed = is_fixed(row+1, col);
         bool bot_right_fixed = is_fixed(row+1, col+1);
 
-        satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, bot_right_fixed);
+        satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, 
+                           bot_right_fixed);
         satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
     }
 }
@@ -828,7 +832,8 @@ __global__ void satisfy_case3_kernel()
         bool bot_fixed = is_fixed(row+1, col);
         bool bot_right_fixed = is_fixed(row+1, col+1);
 
-        satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, bot_right_fixed);
+        satisfy_constraint(curr, bottom_right, shear_len, curr_fixed, 
+                           bot_right_fixed);
         satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
     }
 }
@@ -837,7 +842,8 @@ __global__ void satisfy_case4_kernel()
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
-    int num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) + (height-2);
+    int num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) + 
+                                (height-2);
     float3 *pos_array = cuda_cloth_params.pos_array;
     float struct_len = cuda_cloth_params.struct_spring_len;
 
@@ -859,7 +865,8 @@ __global__ void satisfy_case4_kernel()
             satisfy_six_constraints(row, col);
         }
         //subcase 2 border rows
-        else if(idx < (num_inner_square_constraints + num_row_border_constraints))
+        else if(idx < (num_inner_square_constraints + 
+                       num_row_border_constraints))
         {
             int new_idx = idx - num_inner_square_constraints;
             int len = num_row_border_constraints/2;
@@ -875,12 +882,14 @@ __global__ void satisfy_case4_kernel()
 
             bool curr_fixed = is_fixed(row, col);
             bool right_fixed = is_fixed(row, col+1);
-            satisfy_constraint(curr, right, struct_len, curr_fixed, right_fixed);
+            satisfy_constraint(curr, right, struct_len, curr_fixed, 
+                               right_fixed);
         }
         //subcase 3 border columns
         else
         {
-            int new_idx = idx - num_inner_square_constraints-num_row_border_constraints;
+            int new_idx = (idx - num_inner_square_constraints -
+                                 num_row_border_constraints);
             int len = num_col_border_constraints/2;
             int col = 0;
             if(new_idx > len)

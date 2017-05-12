@@ -4,7 +4,7 @@ local vdb = require 'ebb.lib.vdb'
 local os = require 'os'
 
 --particle initialization 
-local N = 1024
+local N = 16
 local MIN_BOUND = -1.0
 local MAX_BOUND = 1.0
 local BOUND_LENGTH = MAX_BOUND - MIN_BOUND
