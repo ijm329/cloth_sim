@@ -102,12 +102,12 @@ class cuda_cloth
         //float3 *dev_pos_array;
         float3 *dev_prev_pos_array;
         float3 *dev_force_array;
-        float3 *dev_normal_array;
+        //float3 *dev_normal_array;
         float3 *host_pos_array;
         float3 *host_normal_array;
 
         void update_positions(float3 *dptr);
-        void apply_forces(float3 *dptr);
+        void apply_forces(float3 *dptr, float3 *nptr);
         void satisfy_constraints(float3 *dptr);
         void reset_fixed_particles();
 
