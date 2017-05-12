@@ -31,16 +31,13 @@ cuda_cloth::cuda_cloth(int n)
     num_particles_height = n;
     num_particles = num_particles_width * num_particles_height;
     host_pos_array = (float3 *)malloc(sizeof(float3) * num_particles);
-    host_normal_array = (float3 *)malloc(sizeof(float3) * num_particles);
-    if((host_pos_array == NULL) || (host_normal_array == NULL))
+    if((host_pos_array == NULL))
     {
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
     }
-    //GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_prev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
-    //GPU_ERR_CHK(cudaMalloc(&dev_normal_array, sizeof(float3) * num_particles));
 }
 
 cuda_cloth::cuda_cloth(int w, int h)
@@ -48,35 +45,19 @@ cuda_cloth::cuda_cloth(int w, int h)
     num_particles_width = w;
     num_particles_height = h;
     host_pos_array = (float3 *)malloc(sizeof(float3) * num_particles);
-    host_normal_array = (float3 *)malloc(sizeof(float3) * num_particles);
-    if((host_pos_array == NULL) || (host_normal_array == NULL))
+    if((host_pos_array == NULL))
     {
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
     }
-    //GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_prev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
-    //GPU_ERR_CHK(cudaMalloc(&dev_normal_array, sizeof(float3) * num_particles));
 }
 
 cuda_cloth::~cuda_cloth()
 {
-    free(host_pos_array);
-    free(host_normal_array);
-    //cudaFree(dev_pos_array);
     cudaFree(dev_prev_pos_array);
     cudaFree(dev_force_array);
-    //cudaFree(dev_normal_array);
-}
-
-// Get particles back from the device for rendering 
-void cuda_cloth::get_particles()
-{
-    //GPU_ERR_CHK(cudaMemcpy(host_pos_array, dev_pos_array,
-    //            sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
-    //GPU_ERR_CHK(cudaMemcpy(host_normal_array, dev_normal_array,
-    //            sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
 }
 
 __inline__ float get_spring_len(int width, int height, spring_type_t type)
@@ -135,16 +116,10 @@ void cuda_cloth::init()
             z = BOUND_LENGTH*z + MIN_BOUND;
 
             host_pos_array[i*num_particles_width + j] = {x, 1.0f, z};
-            host_normal_array[i*num_particles_width + j] = {0.0f, 0.0f, 0.0f};
         }
     }
-    //copy initialized data to device
-    /*GPU_ERR_CHK(cudaMemcpy(dev_pos_array, host_pos_array,
-                sizeof(float3) * num_particles, cudaMemcpyHostToDevice));
-    GPU_ERR_CHK(cudaMemcpy(dev_prev_pos_array, dev_pos_array,
-                sizeof(float3) * num_particles, cudaMemcpyDeviceToDevice)); */
+    //clear forces
     GPU_ERR_CHK(cudaMemset(dev_force_array, 0, sizeof(float3) * num_particles));
-    //GPU_ERR_CHK(cudaMemset(dev_normal_array, 0, sizeof(float3) * num_particles));
 
     //set up cloth simulation parameters in read only memory
     cloth_constants params;
@@ -165,6 +140,7 @@ void cuda_cloth::init()
                cudaGraphicsMapFlagsWriteDiscard,
                num_particles_width * num_particles_height);
     float3 *dptr, *nptr;
+    //copy over data into buffers and clear as necessary
     size_t num_bytes = get_cuda_device_ptr(&cuda_pos_vbo_resource, &dptr);
     size_t norm_bytes = get_cuda_device_ptr(&cuda_normal_vbo_resource, &nptr);
     GPU_ERR_CHK(cudaMemcpy(dptr, host_pos_array, num_bytes, cudaMemcpyHostToDevice));
@@ -172,26 +148,17 @@ void cuda_cloth::init()
     GPU_ERR_CHK(cudaMemset(nptr, 0, sizeof(float3) * num_particles));
     checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pos_vbo_resource, 0));
     checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_normal_vbo_resource, 0));
+    free(host_pos_array);
+    host_pos_array = NULL;
 }
 
 
 void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
-    /*float3 *dptr;
-    size_t num_bytes = get_cuda_device_ptr(&cuda_pos_vbo_resource, 
-                                           &dptr);
-    cudaMemcpy(dptr, dev_pos_array, num_bytes,
-                cudaMemcpyDeviceToDevice); */
     checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pos_vbo_resource, 0));
-
-    /*float3 *dptr;
-    size_t num_bytes = get_cuda_device_ptr(&cuda_normal_vbo_resource,
-                                    &dptr);
-    cudaMemcpy(dptr, dev_normal_array, num_bytes,
-                cudaMemcpyDeviceToDevice);*/
     checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_normal_vbo_resource,
                                                0));
-    unsigned num_elements = num_particles; //TODO: maybe num_particles * sizeoffloat3
+    unsigned num_elements = num_particles; 
 
     //transform the cloth's position in the world space based on 
     //camera parameters
@@ -1020,7 +987,7 @@ void cuda_cloth::simulate_timestep()
     double constraint_end = CycleTimer::currentSeconds();
 
     double transfer_start = CycleTimer::currentSeconds();
-    //get_particles();
+    
     double transfer_end = CycleTimer::currentSeconds();
 
     printf("----------------------------------------\n");
