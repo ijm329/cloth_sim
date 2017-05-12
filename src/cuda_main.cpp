@@ -15,7 +15,7 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 128
+#define NUM_CLOTH_POINTS 512
 
 cuda_cloth cuda_cloth(NUM_CLOTH_POINTS);
 
@@ -24,6 +24,10 @@ int mouse_old_x, mouse_old_y;
 int mouse_buttons = 0;
 float rotate_x = 0.0, rotate_y = -45.0;
 float translate_z = MIN_BOUND*3;
+
+GLuint pos_vbo, normal_vbo;
+struct cudaGraphicsResource *cuda_pos_vbo_resource;
+struct cudaGraphicsResource *cuda_normal_vbo_resource;
 
 void render_scene()
 {
@@ -181,7 +185,7 @@ void glInit(int argc, char **argv)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_MULTISAMPLE);
-    glPointSize(1.0);
+    glPointSize(2.0);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);

@@ -135,11 +135,7 @@ void Cloth::init()
             particles[i*num_particles_width + j].prev_pos = {x, 1.0f, z};
 
             //give the border particles a different color
-            float r,g,b;
             bool fixed;
-            r = 1.0f;
-            g = 1.0f;
-            b = 1.0f;
             fixed = false;
 
             if(i == 0)
@@ -148,29 +144,6 @@ void Cloth::init()
                     fixed = true;
             }
 
-            if(j == 0)
-            {
-                r = 0.0f;
-                //fixed = true;
-            }
-            if(j == num_particles_height - 1)
-            {
-                g = 0.0f;
-                //fixed = true;
-            }
-            if(i == 0)
-            {
-                b = 0.0f;
-                //fixed = true;
-            }
-            if(i == num_particles_width-1)
-            {
-                r = 0.0f;
-                g = 0.0f;
-                //fixed = true;
-            }
-
-            particles[i*num_particles_width + j].color = {r, g, b};
             particles[i*num_particles_width + j].fixed = fixed;
             particles[i*num_particles_width + j].force = {0.0f, 0.0f, 0.0f};
             particles[i*num_particles_width + j].normal = {0.0f, 0.0f, 0.0f};
@@ -261,20 +234,24 @@ void Cloth::render(float rotate_x, float rotate_y, float translate_z)
     glRotatef(rotate_x, 1.0, 0.0, 0.0);
     glRotatef(rotate_y, 0.0, 1.0, 0.0);
 
-    //render_particles(rotate_x, rotate_y, translate_z);
-    render_springs(rotate_x, rotate_y, translate_z);
+    render_particles(rotate_x, rotate_y, translate_z);
+    //render_springs(rotate_x, rotate_y, translate_z);
 }
 
 void Cloth::render_particles(float rotate_x, float rotate_y, float translate_z)
 {
     int num_particles = get_num_particles();
+    for(int i = 0; i < num_particles; i++)
+        particles[i].normal.normalize();
+
     glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
     glVertexPointer(3, GL_FLOAT, sizeof(particle), &(particles[0].pos.x));
-    glColorPointer(3, GL_FLOAT, sizeof(particle), &(particles[0].color.x));
+    glNormalPointer(GL_FLOAT, sizeof(particle), &(particles[0].normal.x));
+    glColor3f(0.0f, 0.5f, 1.0f);
     glDrawArrays(GL_POINTS, 0, num_particles);
     glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
 }
 
 inline int Cloth::get_num_particles()
@@ -294,42 +271,6 @@ vector3D Cloth::get_normal_vec(vector3D p1, vector3D p2, vector3D p3)
     vector3D line2 = p3 - p1;
     vector3D cross_prod = line1.cross_product(line2);
     return cross_prod;
-}
-
-void Cloth::draw_triangle(particle *p1, particle *p2, particle *p3)
-{
-    p1->normal.normalize();
-    p2->normal.normalize();
-    p3->normal.normalize();
-
-    glNormal3fv(&(p1->normal.x));
-    glVertex3fv(&(p1->pos.x));
-
-    glNormal3fv(&(p2->normal.x));
-    glVertex3fv(&(p2->pos.x));
-
-    glNormal3fv(&(p3->normal.x));
-    glVertex3fv(&(p3->pos.x));
-}
-
-void Cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
-                        int diag_idx)
-{
-
-    glColor3f(0.0f, 0.5f, 1.0f);
-    particle *curr = &(particles[curr_idx]);
-    particle *lower = &(particles[lower_idx]);
-    particle *right = &(particles[right_idx]);
-    particle *diag = &(particles[diag_idx]);
-
-    particle mid;
-    mid.pos = (curr->pos + diag->pos)/2.0;
-    mid.normal = curr->normal + lower->normal + right->normal + diag->normal;
-
-    draw_triangle(curr, lower, &mid);
-    draw_triangle(lower, diag, &mid);
-    draw_triangle(&mid, diag, right);
-    draw_triangle(curr, &mid, right);
 }
 
 void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
@@ -353,22 +294,6 @@ void Cloth::render_springs(float rotate_x, float rotate_y, float translate_z)
     }
     glEnd(); */
     //glColor3f(0.0, 0.90, 0.93);
-
-    glBegin(GL_TRIANGLES);
-    for(int i = 0; i < num_particles_width - 1; i++)
-    {
-        for(int j = 0; j < num_particles_height - 1; j++)
-        {
-            
-            int curr_idx = j * num_particles_width + i;
-            int right_idx = curr_idx + 1;
-            int lower_idx = (j + 1) * num_particles_width + i;
-            int diag_idx = lower_idx + 1;
-
-            draw_square(curr_idx, right_idx, lower_idx, diag_idx);
-       }
-    }
-    glEnd();
 }
 
 void Cloth::apply_forces()

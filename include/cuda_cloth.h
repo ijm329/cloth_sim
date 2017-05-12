@@ -110,10 +110,6 @@ class cuda_cloth
         void apply_forces();
         void satisfy_constraints();
         void reset_fixed_particles();
-        void draw_square(int curr_idx, int right_idx, int lower_idx,
-                         int diag_idx);
-        void draw_triangle(float3 p1_pos, float3 p2_pos, float3 p3_pos,
-                           float3 p1_normal, float3 p2_normal, float3 p3_normal);
 
     public:
         cuda_cloth(int n = 2);

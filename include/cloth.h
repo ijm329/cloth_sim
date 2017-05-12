@@ -65,7 +65,6 @@ typedef struct particle
 {
     vector3D pos;
     vector3D prev_pos;
-    vector3D color;
     vector3D force;
     vector3D normal;
     bool fixed;

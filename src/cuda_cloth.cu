@@ -3,6 +3,10 @@
 #define POS_INDEX 0
 #define PREV_POS_INDEX 1
 
+extern GLuint pos_vbo, normal_vbo;
+extern struct cudaGraphicsResource *cuda_pos_vbo_resource;
+extern struct cudaGraphicsResource *cuda_normal_vbo_resource;
+
 struct cloth_constants
 {
     int num_particles_width;
@@ -90,6 +94,24 @@ __inline__ float get_spring_len(int width, int height, spring_type_t type)
     }
 }
 
+void create_vbo(GLuint *vbo, struct cudaGraphicsResource **vbo_res,
+                unsigned int vbo_res_flags, unsigned num_particles)
+{
+    assert(vbo);
+
+    //create the buffer object
+    glGenBuffers(1, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+
+    //initialize buffer object
+    unsigned int size = num_particles * sizeof(float3);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    //register this buffer object with CUDA
+    checkCudaErrors(cudaGraphicsGLRegisterBuffer(vbo_res, *vbo, vbo_res_flags));
+}
+
 // initializes cloth positions and allocates memory region in the device and 
 // copies the particle buffer into that region
 void cuda_cloth::init()
@@ -130,10 +152,40 @@ void cuda_cloth::init()
                               num_particles_height, SHEAR);
     GPU_ERR_CHK(cudaMemcpyToSymbol(cuda_cloth_params, &params,
                                   sizeof(cloth_constants)));
+    create_vbo(&pos_vbo, &cuda_pos_vbo_resource, cudaGraphicsMapFlagsNone,
+               num_particles_width * num_particles_height);
+    create_vbo(&normal_vbo, &cuda_normal_vbo_resource, 
+               cudaGraphicsMapFlagsWriteDiscard,
+               num_particles_width * num_particles_height);
+}
+
+size_t get_cuda_device_ptr(struct cudaGraphicsResource **vbo_resource,
+                             float3 **dptr)
+{
+    checkCudaErrors(cudaGraphicsMapResources(1, vbo_resource, 0));
+    size_t num_bytes;
+    checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)dptr,
+                                    &num_bytes, *vbo_resource));
+    return num_bytes;
 }
 
 void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
+    float3 *dptr;
+    size_t num_bytes = get_cuda_device_ptr(&cuda_pos_vbo_resource, 
+                                           &dptr);
+    cudaMemcpy(dptr, dev_pos_array, num_bytes,
+                cudaMemcpyDeviceToDevice);
+    checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pos_vbo_resource, 0));
+
+    num_bytes = get_cuda_device_ptr(&cuda_normal_vbo_resource,
+                                    &dptr);
+    cudaMemcpy(dptr, dev_normal_array, num_bytes,
+                cudaMemcpyDeviceToDevice);
+    checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_normal_vbo_resource,
+                                               0));
+    unsigned num_elements = num_bytes / sizeof(float3);
+
     //transform the cloth's position in the world space based on 
     //camera parameters
     glMatrixMode(GL_MODELVIEW);
@@ -142,71 +194,17 @@ void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
     glRotatef(rotate_x, 1.0, 0.0, 0.0);
     glRotatef(rotate_y, 0.0, 1.0, 0.0);
 
-    glBegin(GL_TRIANGLES);
+    glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
+    glVertexPointer(3, GL_FLOAT, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+    glNormalPointer(GL_FLOAT, 0, 0);
 
-    for(int j = 0; j < num_particles_height - 1; j++)
-    {
-        for(int i = 0; i < num_particles_width - 1; i++)
-        {
-            int curr_idx = j * num_particles_width + i;
-            int right_idx = curr_idx + 1;
-            int lower_idx = (j + 1) * num_particles_width + i;
-            int diag_idx = lower_idx + 1;
-
-            draw_square(curr_idx, right_idx, lower_idx, diag_idx);
-       }
-    }
-    glEnd();
-}
-
-void cuda_cloth::draw_triangle(float3 p1_pos, float3 p2_pos, float3 p3_pos,
-                        float3 p1_normal, float3 p2_normal, float3 p3_normal)
-{
-    glNormal3fv(&p1_normal.x);
-    glVertex3fv(&p1_pos.x);
-    glNormal3fv(&p2_normal.x);
-    glVertex3fv(&p2_pos.x);
-    glNormal3fv(&p3_normal.x);
-    glVertex3fv(&p3_pos.x);
-}
-
-void cuda_cloth::draw_square(int curr_idx, int right_idx, int lower_idx,
-                             int diag_idx)
-{
-    glColor3f(0.0f, 1.0f, 0.5f);
-    float3 curr_pos = host_pos_array[curr_idx];
-    float3 lower_pos = host_pos_array[lower_idx];
-    float3 right_pos = host_pos_array[right_idx];
-    float3 diag_pos = host_pos_array[diag_idx];
-
-    float3 curr_normal = host_normal_array[curr_idx];
-    float3 lower_normal = host_normal_array[lower_idx];
-    float3 right_normal = host_normal_array[right_idx];
-    float3 diag_normal = host_normal_array[diag_idx];
-
-    float3 mid_pos;
-    float3 mid_normal;
-    mid_pos = (curr_pos + diag_pos)/2.0;
-    mid_normal = curr_normal + lower_normal + right_normal + diag_normal;
-    mid_normal = normalize(mid_normal);
-
-    draw_triangle(curr_pos, lower_pos, mid_pos,
-                  curr_normal, lower_normal, mid_normal);
-    draw_triangle(lower_pos, diag_pos, mid_pos,
-                  lower_normal, diag_normal, mid_normal);
-    draw_triangle(mid_pos, diag_pos, right_pos,
-                  mid_normal, diag_normal, right_normal);
-    draw_triangle(curr_pos, mid_pos, right_pos,
-                  curr_normal, mid_normal, right_normal);
-
-    //glEnableClientState(GL_VERTEX_ARRAY);
-    ////glEnableClientState(GL_COLOR_ARRAY);
-    //glColor3f(0.0, 1.0, 0.5);
-    //glVertexPointer(3, GL_FLOAT, sizeof(float3), &(host_pos_array[0].x));
-    ////glColorPointer(3, GL_FLOAT, sizeof(float3), &(particles[0].color.x));
-    //glDrawArrays(GL_POINTS, 0, num_particles);
-    //glDisableClientState(GL_VERTEX_ARRAY);
-    ////glDisableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glColor3f(0.0, 1.0, 0.5);
+    glDrawArrays(GL_POINTS, 0, num_elements);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
 }
 
 __device__ __inline__ float3 get_velocity(float3 p_pos, float3 p_prev_pos)
@@ -1010,7 +1008,7 @@ void cuda_cloth::simulate_timestep()
     double constraint_end = CycleTimer::currentSeconds();
 
     double transfer_start = CycleTimer::currentSeconds();
-    get_particles();
+    //get_particles();
     double transfer_end = CycleTimer::currentSeconds();
 
     printf("----------------------------------------\n");
