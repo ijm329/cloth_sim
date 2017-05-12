@@ -20,17 +20,18 @@
 #define NUM_CLOTH_POINTS 32
 
 //USE THIS IF YOU WANT TO ENABLE GPU MODE
-#define GPU_MODE
+//#define GPU_MODE
 #ifdef GPU_MODE
 #include "cuda_cloth.h"
 cuda_cloth *cloth = NULL;
-GLuint pos_vbo, normal_vbo;
-struct cudaGraphicsResource *cuda_pos_vbo_resource;
-struct cudaGraphicsResource *cuda_normal_vbo_resource;
 #else
 #include "cloth.h"
 Cloth *cloth = NULL; 
 #endif
+
+GLuint pos_vbo, normal_vbo;
+struct cudaGraphicsResource *cuda_pos_vbo_resource;
+struct cudaGraphicsResource *cuda_normal_vbo_resource;
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
