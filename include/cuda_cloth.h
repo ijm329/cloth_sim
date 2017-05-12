@@ -103,13 +103,18 @@ class cuda_cloth
         float3 *dev_pos_array;
         float3 *dev_prev_pos_array;
         float3 *dev_force_array;
+        float3 *dev_normal_array;
         float3 *host_pos_array;
+        float3 *host_normal_array;
 
         void update_positions();
         void apply_forces();
         void satisfy_constraints();
         void reset_fixed_particles();
-        void render_particles();
+        void draw_square(int curr_idx, int right_idx, int lower_idx,
+                         int diag_idx);
+        void draw_triangle(float3 p1_pos, float3 p2_pos, float3 p3_pos,
+                           float3 p1_normal, float3 p2_normal, float3 p3_normal);
 
     public:
         cuda_cloth(int n = 2);
