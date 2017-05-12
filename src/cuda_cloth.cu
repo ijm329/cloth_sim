@@ -13,7 +13,6 @@ struct cloth_constants
     int num_particles_height;
     float struct_spring_len;
     float shear_spring_len;
-    float3 *pos_array;
     float3 *prev_pos_array;
     float3 *force_array;
     float3 *normal_array;
@@ -39,7 +38,7 @@ cuda_cloth::cuda_cloth(int n)
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
     }
-    GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
+    //GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_prev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_normal_array, sizeof(float3) * num_particles));
@@ -56,7 +55,7 @@ cuda_cloth::cuda_cloth(int w, int h)
         std::cout<<"Malloc error"<<std::endl;
         exit(1);
     }
-    GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
+    //GPU_ERR_CHK(cudaMalloc(&dev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_prev_pos_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_force_array, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMalloc(&dev_normal_array, sizeof(float3) * num_particles));
@@ -66,7 +65,7 @@ cuda_cloth::~cuda_cloth()
 {
     free(host_pos_array);
     free(host_normal_array);
-    cudaFree(dev_pos_array);
+    //cudaFree(dev_pos_array);
     cudaFree(dev_prev_pos_array);
     cudaFree(dev_force_array);
     cudaFree(dev_normal_array);
@@ -75,8 +74,8 @@ cuda_cloth::~cuda_cloth()
 // Get particles back from the device for rendering 
 void cuda_cloth::get_particles()
 {
-    GPU_ERR_CHK(cudaMemcpy(host_pos_array, dev_pos_array,
-                sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
+    //GPU_ERR_CHK(cudaMemcpy(host_pos_array, dev_pos_array,
+    //            sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
     GPU_ERR_CHK(cudaMemcpy(host_normal_array, dev_normal_array,
                 sizeof(float3) * num_particles, cudaMemcpyDeviceToHost));
 }
@@ -112,6 +111,16 @@ void create_vbo(GLuint *vbo, struct cudaGraphicsResource **vbo_res,
     checkCudaErrors(cudaGraphicsGLRegisterBuffer(vbo_res, *vbo, vbo_res_flags));
 }
 
+size_t get_cuda_device_ptr(struct cudaGraphicsResource **vbo_resource,
+                             float3 **dptr)
+{
+    checkCudaErrors(cudaGraphicsMapResources(1, vbo_resource, 0));
+    size_t num_bytes;
+    checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)dptr,
+                                    &num_bytes, *vbo_resource));
+    return num_bytes;
+}
+
 // initializes cloth positions and allocates memory region in the device and 
 // copies the particle buffer into that region
 void cuda_cloth::init()
@@ -131,10 +140,10 @@ void cuda_cloth::init()
         }
     }
     //copy initialized data to device
-    GPU_ERR_CHK(cudaMemcpy(dev_pos_array, host_pos_array,
+    /*GPU_ERR_CHK(cudaMemcpy(dev_pos_array, host_pos_array,
                 sizeof(float3) * num_particles, cudaMemcpyHostToDevice));
     GPU_ERR_CHK(cudaMemcpy(dev_prev_pos_array, dev_pos_array,
-                sizeof(float3) * num_particles, cudaMemcpyDeviceToDevice));
+                sizeof(float3) * num_particles, cudaMemcpyDeviceToDevice)); */
     GPU_ERR_CHK(cudaMemset(dev_force_array, 0, sizeof(float3) * num_particles));
     GPU_ERR_CHK(cudaMemset(dev_normal_array, 0, sizeof(float3) * num_particles));
 
@@ -142,7 +151,6 @@ void cuda_cloth::init()
     cloth_constants params;
     params.num_particles_width = num_particles_width;
     params.num_particles_height = num_particles_height;
-    params.pos_array = dev_pos_array;
     params.prev_pos_array = dev_prev_pos_array;
     params.normal_array = dev_normal_array;
     params.force_array = dev_force_array;
@@ -157,28 +165,25 @@ void cuda_cloth::init()
     create_vbo(&normal_vbo, &cuda_normal_vbo_resource, 
                cudaGraphicsMapFlagsWriteDiscard,
                num_particles_width * num_particles_height);
+    float3 *dptr;
+    size_t num_bytes = get_cuda_device_ptr(&cuda_pos_vbo_resource, &dptr);
+    GPU_ERR_CHK(cudaMemcpy(dptr, host_pos_array, num_bytes, cudaMemcpyHostToDevice));
+    GPU_ERR_CHK(cudaMemcpy(dev_prev_pos_array, dptr, num_bytes, cudaMemcpyDeviceToDevice));
+    checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pos_vbo_resource, 0));
 }
 
-size_t get_cuda_device_ptr(struct cudaGraphicsResource **vbo_resource,
-                             float3 **dptr)
-{
-    checkCudaErrors(cudaGraphicsMapResources(1, vbo_resource, 0));
-    size_t num_bytes;
-    checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)dptr,
-                                    &num_bytes, *vbo_resource));
-    return num_bytes;
-}
 
 void cuda_cloth::render(float rotate_x, float rotate_y, float translate_z)
 {
-    float3 *dptr;
+    /*float3 *dptr;
     size_t num_bytes = get_cuda_device_ptr(&cuda_pos_vbo_resource, 
                                            &dptr);
     cudaMemcpy(dptr, dev_pos_array, num_bytes,
-                cudaMemcpyDeviceToDevice);
+                cudaMemcpyDeviceToDevice); */
     checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_pos_vbo_resource, 0));
 
-    num_bytes = get_cuda_device_ptr(&cuda_normal_vbo_resource,
+    float3 *dptr;
+    size_t num_bytes = get_cuda_device_ptr(&cuda_normal_vbo_resource,
                                     &dptr);
     cudaMemcpy(dptr, dev_normal_array, num_bytes,
                 cudaMemcpyDeviceToDevice);
@@ -267,14 +272,15 @@ __device__ __inline__ void load_particle_pos_data(
         float3 *f_top[2],
         float3 *f_btm[2],
         float3 *f_left[2],
-        float3 *f_right[2])
+        float3 *f_right[2],
+        float3 *dptr)
 {
     //row in col within the entire grid of threads
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
-    float3 *dev_pos_array = cuda_cloth_params.pos_array;
+    float3 *dev_pos_array = dptr;
     float3 *dev_prev_pos_array = cuda_cloth_params.prev_pos_array;
 
     int shared_mem_x =  blockDim.x + 2;
@@ -616,7 +622,7 @@ __device__ __inline__ float3 compute_particle_forces(
     return tot_force;
 }
 
-__global__ void apply_forces_kernel()
+__global__ void apply_forces_kernel(float3 *dptr)
 {
     //row in col within the entire grid of threads
     int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -636,7 +642,7 @@ __global__ void apply_forces_kernel()
     float3 *f_left[2] = {NULL, NULL};
     float3 *f_right[2] = {NULL, NULL};
 
-    load_particle_pos_data(blk_particles, f_top, f_btm, f_left, f_right);
+    load_particle_pos_data(blk_particles, f_top, f_btm, f_left, f_right, dptr);
     __syncthreads();
     float3 tot_force = compute_particle_forces(blk_particles, f_top, f_btm,
                                                f_left, f_right);
@@ -644,17 +650,17 @@ __global__ void apply_forces_kernel()
       dev_force_array[idx] = tot_force;
 }
 
-void cuda_cloth::apply_forces()
+void cuda_cloth::apply_forces(float3 *dptr)
 {
   //setup invocaiton for application of all forces
   dim3 threads_per_block(TPB_X, TPB_Y, 1);
   dim3 num_blocks(UP_DIV(num_particles_width, TPB_X), 
                  UP_DIV(num_particles_height, TPB_Y), 1);
-  apply_forces_kernel<<<num_blocks, threads_per_block>>>();
+  apply_forces_kernel<<<num_blocks, threads_per_block>>>(dptr);
   cudaDeviceSynchronize();
 }
 
-__global__ void update_positions_kernel()
+__global__ void update_positions_kernel(float3 *dptr)
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
@@ -666,14 +672,14 @@ __global__ void update_positions_kernel()
     {
         int i = row * width + col;
      
-        float3 curr_pos = cuda_cloth_params.pos_array[i];
+        float3 curr_pos = dptr[i];
         float3 curr_prev_pos = cuda_cloth_params.prev_pos_array[i];
         float3 curr_force = cuda_cloth_params.force_array[i];
         float3 temp = make_float3(curr_pos.x, curr_pos.y, curr_pos.z);
         float3 acc = curr_force/PARTICLE_MASS;
         curr_pos += (curr_pos - curr_prev_pos + acc * TIME_STEP * TIME_STEP);
         curr_prev_pos = temp;
-        cuda_cloth_params.pos_array[i] = curr_pos;
+        dptr[i] = curr_pos;
         cuda_cloth_params.prev_pos_array[i] = curr_prev_pos;
         
         //fixed particles
@@ -683,17 +689,17 @@ __global__ void update_positions_kernel()
           float  z = (float)row/height;
           x = BOUND_LENGTH*x + MIN_BOUND;
           z = BOUND_LENGTH*z + MIN_BOUND;
-          cuda_cloth_params.pos_array[i] = make_float3(x,1.0f,z);
+          dptr[i] = make_float3(x,1.0f,z);
         }
     }
 }
 
-void cuda_cloth::update_positions()
+void cuda_cloth::update_positions(float3 *dptr)
 {
     dim3 threads_per_block(TPB_X, TPB_Y, 1);
     dim3 num_blocks(UP_DIV(num_particles_width, TPB_X), 
                    UP_DIV(num_particles_height, TPB_Y), 1);
-    update_positions_kernel<<<num_blocks, threads_per_block>>>();
+    update_positions_kernel<<<num_blocks, threads_per_block>>>(dptr);
     cudaDeviceSynchronize();
 }
 
@@ -724,13 +730,13 @@ __device__ __inline__ void satisfy_constraint(float3 *pos1, float3 *pos2,
             *(pos2) = *(pos2) - 2*move_dist * normalize(diff);
     }
 }
-__device__ __inline__ void satisfy_six_constraints(int row, int col)
+__device__ __inline__ void satisfy_six_constraints(int row, int col, float3 *dptr)
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
     float struct_len = cuda_cloth_params.struct_spring_len;
     float shear_len = cuda_cloth_params.shear_spring_len;
-    float3 *pos_array = cuda_cloth_params.pos_array;
+    float3 *pos_array = dptr;
 
     assert((row <= (height-2)) && (col <= (width-2)));
     float3 *curr = &pos_array[row*width+col];
@@ -753,7 +759,7 @@ __device__ __inline__ void satisfy_six_constraints(int row, int col)
     satisfy_constraint(bottom, right, shear_len, bot_fixed, right_fixed);
 }
 
-__global__ void satisfy_case1_kernel()
+__global__ void satisfy_case1_kernel(float3 *dptr)
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
@@ -766,17 +772,17 @@ __global__ void satisfy_case1_kernel()
         int cg_col = idx % (width/2);
         int top_left_row = cg_row*2;
         int top_left_col = cg_col*2;
-        satisfy_six_constraints(top_left_row, top_left_col);
+        satisfy_six_constraints(top_left_row, top_left_col, dptr);
     }
 }
 
-__global__ void satisfy_case2_kernel()
+__global__ void satisfy_case2_kernel(float3 *dptr)
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
     int num_constraint_groups = (height/2) * ((width-1)/2);
     int len = (width-1)/2;
-    float3 *pos_array = cuda_cloth_params.pos_array;
+    float3 *pos_array = dptr;
     float shear_len = cuda_cloth_params.shear_spring_len;
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -803,13 +809,13 @@ __global__ void satisfy_case2_kernel()
     }
 }
 
-__global__ void satisfy_case3_kernel()
+__global__ void satisfy_case3_kernel(float3 *dptr)
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
     int num_constraint_groups = (width/2) * ((height-1)/2);
     int len = (width/2);
-    float3 *pos_array = cuda_cloth_params.pos_array;
+    float3 *pos_array = dptr;
     float shear_len = cuda_cloth_params.shear_spring_len;
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -836,13 +842,13 @@ __global__ void satisfy_case3_kernel()
     }
 }
 
-__global__ void satisfy_case4_kernel()
+__global__ void satisfy_case4_kernel(float3 *dptr)
 {
     int width = cuda_cloth_params.num_particles_width;
     int height = cuda_cloth_params.num_particles_height;
     int num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) + 
                                 (height-2);
-    float3 *pos_array = cuda_cloth_params.pos_array;
+    float3 *pos_array = dptr;
     float struct_len = cuda_cloth_params.struct_spring_len;
 
     int num_inner_square_constraints = ((width-2)/2) * ((height-2)/2);
@@ -860,7 +866,7 @@ __global__ void satisfy_case4_kernel()
             int cg_col = idx % len;
             int row = cg_row*2+1;
             int col = cg_col*2+1;
-            satisfy_six_constraints(row, col);
+            satisfy_six_constraints(row, col, dptr);
         }
         //subcase 2 border rows
         else if(idx < (num_inner_square_constraints + 
@@ -906,7 +912,7 @@ __global__ void satisfy_case4_kernel()
     }
 }
 
-void cuda_cloth::satisfy_constraints()
+void cuda_cloth::satisfy_constraints(float3 *dptr)
 {
     int threads_per_block = 1024;
 
@@ -929,7 +935,7 @@ void cuda_cloth::satisfy_constraints()
         int height = num_particles_height;
         int num_constraint_groups = (width/2) * (height/2);
         int num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-        satisfy_case1_kernel<<<num_blocks, threads_per_block>>>();
+        satisfy_case1_kernel<<<num_blocks, threads_per_block>>>(dptr);
         cudaDeviceSynchronize();
 
         //case 2
@@ -945,7 +951,7 @@ void cuda_cloth::satisfy_constraints()
         // o   o   o   o   o
         num_constraint_groups = (height/2) * ((width-1)/2);
         num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-        satisfy_case2_kernel<<<num_blocks, threads_per_block>>>();
+        satisfy_case2_kernel<<<num_blocks, threads_per_block>>>(dptr);
         cudaDeviceSynchronize();
 
         //case 3
@@ -961,7 +967,7 @@ void cuda_cloth::satisfy_constraints()
         // o  o  o  o  o  o
         num_constraint_groups = (width/2) * ((height-1)/2);
         num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-        satisfy_case3_kernel<<<num_blocks, threads_per_block>>>();
+        satisfy_case3_kernel<<<num_blocks, threads_per_block>>>(dptr);
         cudaDeviceSynchronize();
 
         //case4
@@ -981,7 +987,7 @@ void cuda_cloth::satisfy_constraints()
         num_constraint_groups = ((width-2)/2) * ((height-2)/2) + (width-2) +   
                                 (height-2);
         num_blocks = UP_DIV(num_constraint_groups, threads_per_block);
-        satisfy_case4_kernel<<<num_blocks, threads_per_block>>>();
+        satisfy_case4_kernel<<<num_blocks, threads_per_block>>>(dptr);
         cudaDeviceSynchronize();
     }
 }
@@ -995,16 +1001,18 @@ void cuda_cloth::simulate_timestep()
         printf("CUDA Pos: %d ==> (%f, %f, %f)\n", i, host_pos_array[i].x,
                                 host_pos_array[i].y, host_pos_array[i].z);
     }*/
+    float3 *dptr;
+    size_t num_bytes = get_cuda_device_ptr(&cuda_pos_vbo_resource, &dptr);
     double forces_start = CycleTimer::currentSeconds();
-    apply_forces();
+    apply_forces(dptr);
     double forces_end = CycleTimer::currentSeconds();
 
     double update_start = CycleTimer::currentSeconds();
-    update_positions();
+    update_positions(dptr);
     double update_end = CycleTimer::currentSeconds();
 
     double constraint_start = CycleTimer::currentSeconds();
-    satisfy_constraints();
+    satisfy_constraints(dptr);
     double constraint_end = CycleTimer::currentSeconds();
 
     double transfer_start = CycleTimer::currentSeconds();

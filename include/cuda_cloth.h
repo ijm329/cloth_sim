@@ -99,16 +99,16 @@ class cuda_cloth
         int num_particles_height;
         int num_particles;
 
-        float3 *dev_pos_array;
+        //float3 *dev_pos_array;
         float3 *dev_prev_pos_array;
         float3 *dev_force_array;
         float3 *dev_normal_array;
         float3 *host_pos_array;
         float3 *host_normal_array;
 
-        void update_positions();
-        void apply_forces();
-        void satisfy_constraints();
+        void update_positions(float3 *dptr);
+        void apply_forces(float3 *dptr);
+        void satisfy_constraints(float3 *dptr);
         void reset_fixed_particles();
 
     public:

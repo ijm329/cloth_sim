@@ -17,13 +17,16 @@
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 128
+#define NUM_CLOTH_POINTS 32
 
 //USE THIS IF YOU WANT TO ENABLE GPU MODE
 #define GPU_MODE
 #ifdef GPU_MODE
 #include "cuda_cloth.h"
 cuda_cloth *cloth = NULL;
+GLuint pos_vbo, normal_vbo;
+struct cudaGraphicsResource *cuda_pos_vbo_resource;
+struct cudaGraphicsResource *cuda_normal_vbo_resource;
 #else
 #include "cloth.h"
 Cloth *cloth = NULL; 
