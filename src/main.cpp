@@ -21,7 +21,7 @@
 #define NUM_CLOTH_POINTS 32
 
 //USE THIS IF YOU WANT TO ENABLE GPU MODE
-//#define GPU_MODE
+#define GPU_MODE
 #ifdef GPU_MODE
 #include "cuda_cloth.h"
 cuda_cloth *cloth = NULL;
@@ -262,9 +262,9 @@ int main(int argc, char **argv)
     //initialize GLUT and create window
     glInit(argc, argv);
     #ifdef GPU_MODE
-    cloth = new cuda_cloth(NUM_CLOTH_POINTS);
+    cloth = new cuda_cloth(n);
     #else 
-    cloth = new Cloth(NUM_CLOTH_POINTS);
+    cloth = new Cloth(n);
     #endif
     assert(cloth);
     cloth->init();

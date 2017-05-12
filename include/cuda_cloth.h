@@ -31,7 +31,7 @@
 
 //Simulation Constants
 #define TIME_STEP 0.00314 //in seconds
-#define NUM_CONSTRAINT_ITERS 500
+#define NUM_CONSTRAINT_ITERS 300
 #define STRETCH_CRITICAL 1.1
 
 //Cloth Constants

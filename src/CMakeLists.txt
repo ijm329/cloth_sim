@@ -14,18 +14,19 @@ if(${CUDA_FOUND})
                              ${GLUT_INCLUDE_DIRS}
                              ${OPENGL_INCLUDE_DIRS}
                              ${PROJECT_SOURCE_DIR}/include)
-    cuda_add_executable(cuda_cloth ${CUDA_SOURCE} cuda_cloth.cu cuda_main.cpp)
-    target_link_libraries(cuda_cloth
+    #cuda_add_executable(cuda_cloth ${CUDA_SOURCE} cuda_cloth.cu cuda_main.cpp)
+    cuda_add_executable(cloth_sim ${CUDA_SOURCE} cuda_cloth.cu vector3D.cpp cloth.cpp main.cpp)
+    target_link_libraries(cloth_sim
                           ${GLEW_LIBRARIES}
                           ${GLUT_LIBRARIES}
                           ${OPENGL_LIBRARIES})
 endif(${CUDA_FOUND})
 
-add_executable(cloth_sim ${CPP_SOURCE} vector3D.cpp cloth.cpp main.cpp)
-target_link_libraries(cloth_sim
-                      ${GLEW_LIBRARIES} 
-                      ${GLUT_LIBRARIES} 
-                      ${OPENGL_LIBRARIES} 
-                      ${CMAKE_THREADS_INIT})
+#add_executable(cloth_sim ${CPP_SOURCE} vector3D.cpp cloth.cpp main.cpp)
+#target_link_libraries(cloth_sim
+#                      ${GLEW_LIBRARIES} 
+#                      ${GLUT_LIBRARIES} 
+#                      ${OPENGL_LIBRARIES} 
+#                      ${CMAKE_THREADS_INIT})
 
 set(EXECUTABLE_OUTPUT_PATH ..)
