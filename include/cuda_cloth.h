@@ -13,7 +13,6 @@
 #else
 #include <GL/glut.h>
 #endif
-#include "cuda_vector3D.h"
 
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>

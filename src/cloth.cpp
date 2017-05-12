@@ -618,11 +618,13 @@ void Cloth::simulate_timestep()
     double reset_start = CycleTimer::currentSeconds();
     reset_normals();
     double reset_end = CycleTimer::currentSeconds();
-    //for(int i = 0; i < get_num_particles(); i++)
-    //{
-    //    vector3D curr = particles[i].pos;
-    //    //printf("CPU POS: %d ==> (%f, %f, %f)\n", i, curr.x, curr.y, curr.z);
-    //}
+    /*static int j = 0;
+    printf("iter %d\n", j++);
+    for(int i = 0; i < get_num_particles(); i++)
+    {
+        vector3D curr = particles[i].pos;
+        printf("CPU POS: %d ==> (%f, %f, %f)\n", i, curr.x, curr.y, curr.z);
+    }*/
 
     double forces_start = CycleTimer::currentSeconds();
     apply_forces();

@@ -8,16 +8,27 @@
 #include <GL/glut.h>
 #endif
 #include <assert.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #include "cycleTimer.h"
-#include "cloth.h"
+
 
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 #define REFRESH_INTERVAL 10 //in ms
-#define NUM_CLOTH_POINTS 1024
+#define NUM_CLOTH_POINTS 32
 
-Cloth cloth(NUM_CLOTH_POINTS);
+//USE THIS IF YOU WANT TO ENABLE GPU MODE
+//#define GPU_MODE
+#ifdef GPU_MODE
+#include "cuda_cloth.h"
+cuda_cloth *cloth = NULL;
+#else
+#include "cloth.h"
+Cloth *cloth = NULL; 
+#endif
 
 //mouse controls
 int mouse_old_x, mouse_old_y;
@@ -32,12 +43,12 @@ void render_scene()
     start_time = CycleTimer::currentSeconds();
 
     double simulate_start = CycleTimer::currentSeconds();
-    cloth.simulate_timestep();
+    cloth->simulate_timestep();
     double simulate_end = CycleTimer::currentSeconds();
 
     double render_start = CycleTimer::currentSeconds();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    cloth.render(rotate_x, rotate_y, translate_z);
+    cloth->render(rotate_x, rotate_y, translate_z);
     double render_end = CycleTimer::currentSeconds();
 
     printf("Total Simulation : %.3f s \n", simulate_end - simulate_start);
@@ -128,9 +139,9 @@ void process_keys(unsigned char key, int x, int y)
     if((key == 'q') || (key == 'Q') || (key == 27))
         exit(0);
     else if(key == 32)
-        cloth.simulate_timestep();
+        cloth->simulate_timestep();
     else if((key == 'r') || (key == 'R'))
-        cloth.init();
+        cloth->init();
 }
 
 void printVersionInfo()
@@ -196,7 +207,7 @@ void glInit(int argc, char **argv)
     glViewport(0, 0, DEFAULT_W, DEFAULT_H);
 }
 
-void vector3Dtest()
+/*void vector3Dtest()
 {
     vector3D u(1,2,3);
     vector3D v(u);
@@ -212,13 +223,51 @@ void vector3Dtest()
     std::cout<<(u)<<std::endl;
     std::cout<<(u/5)<<std::endl;
     assert(u/5 == v);
+}*/
+
+void print_usage()
+{
+    fprintf(stderr, "----------------------------------------\n");
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "./cloth_sim -n <positve even number> to run simulation using CPU.\n");
+    fprintf(stderr, "----------------------------------------\n");
+    exit(1);
 }
 
 int main(int argc, char **argv)
 {
+    //get parameters 
+    int n_set = 0;
+    int n = 0;
+    char *str = NULL;
+    int c;
+    while((c = getopt(argc, argv, "n:")) != -1)
+    {
+        switch(c)
+        {
+            case 'n':
+              str = optarg;
+              n = atoi(str);
+              n_set = 1;
+              break;
+            case '?':
+              print_usage();
+              break;
+        }
+    }
+     //error checking
+    if((!n_set) || ((n <= 0) || ((n % 2) != 0)))
+        print_usage();
+
     //initialize GLUT and create window
     glInit(argc, argv);
-    cloth.init();
+    #ifdef GPU_MODE
+    cloth = new cuda_cloth(NUM_CLOTH_POINTS);
+    #else 
+    cloth = new Cloth(NUM_CLOTH_POINTS);
+    #endif
+    assert(cloth);
+    cloth->init();
 
     //vector3Dtest();
 
